@@ -16,6 +16,7 @@ from webots_ros2_driver.webots_controller import WebotsController
 def generate_launch_description():
     package_dir = get_package_share_directory('llm_search')
     robot_description_path = os.path.join(package_dir, 'resource', 'my_robot.urdf')
+    other_robot_description_path = os.path.join(package_dir, 'resource', 'other_robot.urdf')
 
     webots = WebotsLauncher(
         world=os.path.join(package_dir, 'worlds', 'my_world.wbt')
@@ -23,6 +24,13 @@ def generate_launch_description():
 
     my_robot_driver = WebotsController(
         robot_name='my_robot',
+        parameters=[
+            {'robot_description': robot_description_path},
+        ]
+    )
+
+    other_robot_driver = WebotsController(
+        robot_name='other_robot',
         parameters=[
             {'robot_description': robot_description_path},
         ]
@@ -37,6 +45,7 @@ def generate_launch_description():
     return LaunchDescription([
         webots,
         my_robot_driver,
+        other_robot_driver,
         controller_node,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
