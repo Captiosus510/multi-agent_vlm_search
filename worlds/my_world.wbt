@@ -22,3 +22,9 @@ Turtlebot4{
   controller "<extern>"
   name "my_robot"
 }
+
+Turtlebot4{
+  translation 0 0.5 0
+  controller "<extern>"
+  name "other_robot"
+}
