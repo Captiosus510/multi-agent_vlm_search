@@ -1,0 +1,1128 @@
+#VRML_SIM R2022b utf8
+# license: Apache License 2.0
+# license url: http://www.apache.org/licenses/LICENSE-2.0
+# This is a proto file for Webots for the Turtlebot4
+# Extracted from: /tmp/tmp6ks3qy0s.urdf
+
+PROTO Turtlebot4 [
+  field  SFVec3f     translation     0 0 0
+  field  SFRotation  rotation        0 0 1 0
+  field  SFString    name            "Turtlebot4"  # Is `Robot.name`.
+  field  SFString    controller      "void"        # Is `Robot.controller`.
+  field  MFString    controllerArgs  []            # Is `Robot.controllerArgs`.
+  field  SFString    customData      ""            # Is `Robot.customData`.
+  field  SFBool      supervisor      FALSE         # Is `Robot.supervisor`.
+  field  SFBool      synchronization TRUE          # Is `Robot.synchronization`.
+  field  SFBool      selfCollision   FALSE         # Is `Robot.selfCollision`.
+]
+{
+  Robot {
+    translation IS translation
+    rotation IS rotation
+    controller IS controller
+    controllerArgs IS controllerArgs
+    customData IS customData
+    supervisor IS supervisor
+    synchronization IS synchronization
+    selfCollision IS selfCollision
+    name IS name
+    children [
+      Transform {
+        translation 0.000000 0.000000 0.039200
+        rotation 0.000000 0.000000 1.000000 1.570796
+        children [
+          DEF body_visual_visual CadShape {
+            url "meshes/body_visual.dae"
+          }
+        ]
+      }
+      GPS {
+        name "p3d gps"
+      }
+      InertialUnit {
+        name "p3d inertial"
+      }
+      Gyro {
+        name "p3d gyro"
+      }
+      TouchSensor {
+        translation 0.000000 0.000000 0.039200
+        name "bump_front_center"
+        boundingObject DEF CREATE_BUMPER_BOUNDING_OBJECT Group {
+        children [
+          Pose {
+            translation 0.17 0 0.0165
+            rotation 0 0 1 0.0
+            children [
+              DEF CREATE_BUMPER_BOX Box {
+                size 0.01 0.1 0.065 
+              }
+            ]
+          }
+        ]
+      }
+        children [
+          DEF bumper_visual_visual CadShape {
+            url "meshes/bumper_visual.dae"
+          }
+        ]
+        physics Physics {
+          density -1
+          mass 0.100000
+          centerOfMass [ 0.080000 0.000000 0.020000 ]
+          inertiaMatrix [
+            1.348375e-03 2.521737e-04 1.544253e-03
+            4.543520e-08 1.443485e-06 -6.721000e-10
+          ]
+        }
+      }
+      TouchSensor {
+        translation 0.000000 0.000000 0.039200
+        name "bump_front_center_left"
+        boundingObject DEF CREATE_BUMPER_BOUNDING_OBJECT Group {
+        children [
+          Pose {
+            translation 0.142 0.09 0.0165
+            rotation 0 0 1 0.6
+            children [
+              USE CREATE_BUMPER_BOX 
+            ]
+          }
+        ]
+      }
+        physics Physics {
+          density -1
+          mass 0.100000
+          centerOfMass [ 0.080000 0.000000 0.020000 ]
+          inertiaMatrix [
+            1.348375e-03 2.521737e-04 1.544253e-03
+            4.543520e-08 1.443485e-06 -6.721000e-10
+          ]
+        }
+      }
+      TouchSensor {
+        translation 0.000000 0.000000 0.039200
+        name "bump_front_center_right"
+        boundingObject DEF CREATE_BUMPER_BOUNDING_OBJECT Group {
+        children [
+          Pose {
+            translation 0.142 -0.09 0.0165
+            rotation 0 0 1 -0.6
+            children [
+              USE CREATE_BUMPER_BOX 
+            ]
+          }
+        ]
+      }
+        physics Physics {
+          density -1
+          mass 0.100000
+          centerOfMass [ 0.080000 0.000000 0.020000 ]
+          inertiaMatrix [
+            1.348375e-03 2.521737e-04 1.544253e-03
+            4.543520e-08 1.443485e-06 -6.721000e-10
+          ]
+        }
+      }
+      TouchSensor {
+        translation 0.000000 0.000000 0.039200
+        name "bump_front_right"
+        boundingObject DEF CREATE_BUMPER_BOUNDING_OBJECT Group {
+        children [
+          Pose {
+            translation 0.07 -0.148 0.0165
+            rotation 0 0 1 -1.2
+            children [
+              USE CREATE_BUMPER_BOX 
+            ]
+          }
+        ]
+      }
+        physics Physics {
+          density -1
+          mass 0.100000
+          centerOfMass [ 0.080000 0.000000 0.020000 ]
+          inertiaMatrix [
+            1.348375e-03 2.521737e-04 1.544253e-03
+            4.543520e-08 1.443485e-06 -6.721000e-10
+          ]
+        }
+      }
+      TouchSensor {
+        translation 0.000000 0.000000 0.039200
+        name "bump_front_left"
+        boundingObject DEF CREATE_BUMPER_BOUNDING_OBJECT Group {
+        children [
+          Pose {
+            translation 0.07 0.148 0.0165
+            rotation 0 0 1 1.2
+            children [
+              USE CREATE_BUMPER_BOX 
+            ]
+          }
+        ]
+      }
+        physics Physics {
+          density -1
+          mass 0.100000
+          centerOfMass [ 0.080000 0.000000 0.020000 ]
+          inertiaMatrix [
+            1.348375e-03 2.521737e-04 1.544253e-03
+            4.543520e-08 1.443485e-06 -6.721000e-10
+          ]
+        }
+      }
+      SliderJoint {
+        jointParameters JointParameters {
+          axis 0.000000 0.000000 -1.000000
+          dampingConstant 50.0
+          staticFriction 0.1
+        }
+        device [
+          LinearMotor {
+            name "wheel_drop_left_joint"
+            maxForce 10000
+          }
+          PositionSensor {
+            name "wheel_drop_left_joint_sensor"
+          }
+        ]
+        endPoint Solid {
+          translation 0.000000 0.116500 0.040200
+          rotation -1.000000 0.000000 0.000000 1.570796
+          children [
+            HingeJoint {
+              jointParameters HingeJointParameters {
+                axis 0.000000 0.000000 1.000000
+              }
+              device [
+                RotationalMotor {
+                  name "left_wheel_joint"
+                  maxTorque 10000
+                }
+                PositionSensor {
+                  name "left_wheel_joint_sensor"
+                }
+              ]
+              endPoint Solid {
+                children [
+                  Shape {
+                    appearance DEF black PBRAppearance {
+                      baseColor 0.100000 0.100000 0.100000
+                      roughness 1.000000
+                      metalness 0
+                    }
+                    geometry Cylinder {
+                      radius 0.035750000000000004
+                      height 0.015
+                    }
+                  }
+                ]
+                name "left_wheel"
+                boundingObject Cylinder {
+                  radius 0.035750000000000004
+                  height 0.015
+                }
+                physics Physics {
+                  density -1
+                  mass 0.200000
+                  centerOfMass [ 0.000000 0.000000 0.000000 ]
+                  inertiaMatrix [
+                    6.765313e-05 6.765313e-05 1.278063e-04
+                    0.000000e+00 0.000000e+00 0.000000e+00
+                  ]
+                }
+              }
+            }
+          ]
+          name "wheel_drop_left"
+          physics Physics {
+            density -1
+            mass 0.050000
+            centerOfMass [ 0.000000 0.000000 0.000000 ]
+            inertiaMatrix [
+              2.083333e-05 2.083333e-05 2.083333e-05
+              0.000000e+00 0.000000e+00 0.000000e+00
+            ]
+          }
+        }
+      }
+      SliderJoint {
+        jointParameters JointParameters {
+          axis 0.000000 0.000000 -1.000000
+          dampingConstant 50.0
+          staticFriction 0.1
+        }
+        device [
+          LinearMotor {
+            name "wheel_drop_right_joint"
+            maxForce 10000
+          }
+          PositionSensor {
+            name "wheel_drop_right_joint_sensor"
+          }
+        ]
+        endPoint Solid {
+          translation 0.000000 -0.116500 0.040200
+          rotation -1.000000 0.000000 0.000000 1.570796
+          children [
+            HingeJoint {
+              jointParameters HingeJointParameters {
+                axis 0.000000 0.000000 1.000000
+              }
+              device [
+                RotationalMotor {
+                  name "right_wheel_joint"
+                  maxTorque 10000
+                }
+                PositionSensor {
+                  name "right_wheel_joint_sensor"
+                }
+              ]
+              endPoint Solid {
+                children [
+                  Shape {
+                    appearance USE black
+                    geometry Cylinder {
+                      radius 0.035750000000000004
+                      height 0.015
+                    }
+                  }
+                ]
+                name "right_wheel"
+                boundingObject Cylinder {
+                  radius 0.035750000000000004
+                  height 0.015
+                }
+                physics Physics {
+                  density -1
+                  mass 0.200000
+                  centerOfMass [ 0.000000 0.000000 0.000000 ]
+                  inertiaMatrix [
+                    6.765313e-05 6.765313e-05 1.278063e-04
+                    0.000000e+00 0.000000e+00 0.000000e+00
+                  ]
+                }
+              }
+            }
+          ]
+          name "wheel_drop_right"
+          physics Physics {
+            density -1
+            mass 0.050000
+            centerOfMass [ 0.000000 0.000000 0.000000 ]
+            inertiaMatrix [
+              2.083333e-05 2.083333e-05 2.083333e-05
+              0.000000e+00 0.000000e+00 0.000000e+00
+            ]
+          }
+        }
+      }
+      Solid {
+        translation 0.125000 0.000000 0.012200
+        rotation -1.000000 0.000000 0.000000 1.570796
+        children [
+          Shape {
+            appearance USE black
+            geometry Sphere {
+              radius 0.01
+            }
+          }
+        ]
+        name "front_caster_link"
+        boundingObject Sphere {
+          radius 0.01
+        }
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            4.000000e-07 4.000000e-07 4.000000e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.050613 0.043673 0.084400
+        name "imu_link"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.101500 0.087000 0.009200
+        rotation 0.000000 0.000000 -1.000000 0.785398
+        name "mouse"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.060000 0.145000 0.019200
+        rotation -0.641175 0.070786 0.764123 2.973271
+        children [
+          Lidar {
+            name "cliff_side_left"
+            fieldOfView 0.087266
+            horizontalResolution 1
+            numberOfLayers 1
+            minRange 0.000100
+            maxRange 0.150000
+            resolution 1.000000
+            near 0.000100
+          }
+        ]
+        name "cliff_side_left"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.060000 -0.145000 0.019200
+        rotation 0.641175 0.070786 -0.764123 2.973271
+        children [
+          Lidar {
+            name "cliff_side_right"
+            fieldOfView 0.087266
+            horizontalResolution 1
+            numberOfLayers 1
+            minRange 0.000100
+            maxRange 0.150000
+            resolution 1.000000
+            near 0.000100
+          }
+        ]
+        name "cliff_side_right"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.160000 0.045000 0.019200
+        rotation -0.453800 0.708225 0.540818 1.739558
+        children [
+          Lidar {
+            name "cliff_front_left"
+            fieldOfView 0.087266
+            horizontalResolution 1
+            numberOfLayers 1
+            minRange 0.000100
+            maxRange 0.150000
+            resolution 1.000000
+            near 0.000100
+          }
+        ]
+        name "cliff_front_left"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.160000 -0.045000 0.019200
+        rotation 0.453800 0.708225 -0.540818 1.739558
+        children [
+          Lidar {
+            name "cliff_front_right"
+            fieldOfView 0.087266
+            horizontalResolution 1
+            numberOfLayers 1
+            minRange 0.000100
+            maxRange 0.150000
+            resolution 1.000000
+            near 0.000100
+          }
+        ]
+        name "cliff_front_right"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.154000 0.000000 0.057200
+        children [
+          Lidar {
+            name "ir_intensity_front_center_left"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_front_center_left"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.139600 -0.065100 0.057200
+        rotation 0.000000 0.000000 -1.000000 0.436000
+        children [
+          Lidar {
+            name "ir_intensity_front_center_right"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_front_center_right"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.139600 0.065100 0.057200
+        rotation 0.000000 0.000000 1.000000 0.436000
+        children [
+          Lidar {
+            name "ir_intensity_front_left"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_front_left"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.099000 -0.118000 0.057200
+        rotation 0.000000 0.000000 -1.000000 0.873000
+        children [
+          Lidar {
+            name "ir_intensity_front_right"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_front_right"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.099000 0.118000 0.057200
+        rotation 0.000000 0.000000 1.000000 0.873000
+        children [
+          Lidar {
+            name "ir_intensity_left"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_left"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.039900 -0.148800 0.057200
+        rotation 0.000000 0.000000 -1.000000 1.309000
+        children [
+          Lidar {
+            name "ir_intensity_right"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_right"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.039900 0.148800 0.057200
+        rotation 0.000000 0.000000 1.000000 1.309000
+        children [
+          Lidar {
+            name "ir_intensity_side_left"
+            fieldOfView 0.174533
+            verticalFieldOfView 0.174533
+            horizontalResolution 5
+            numberOfLayers 5
+            minRange 0.025000
+            maxRange 0.200000
+            resolution 1.000000
+          }
+        ]
+        name "ir_intensity_side_left"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.153000 0.000000 0.099200
+        name "ir_omni"
+        physics Physics {
+          density -1
+          mass 0.010000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            1.666667e-07 1.666667e-07 1.666667e-07
+            0.000000e+00 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.000000 0.000000 0.094200
+        children [
+          Transform {
+            rotation 1 0 0 0 
+            translation 0.0 0.0 0.0265
+            children [
+             # DEF shell_visual CadShape {
+             #   url "meshes/shell.dae"
+             # }
+             Shape{
+              appearance Appearance {
+                 material Material {
+                   diffuseColor 0.13 0.13 0.13 
+                   emissiveColor 0.13 0.13 0.13 
+                 }
+               }
+               geometry Cylinder{
+                  height 0.055
+                  radius 0.14
+               }
+             }
+             
+            ]
+          }
+          Solid {
+            translation 0.030630 0.114310 0.147570
+            children [
+              Transform {
+                rotation 0.000000 1.000000 0.000000 1.570796
+                children [
+                  DEF tower_standoff_visual CadShape {
+                    url "meshes/tower_standoff.dae"
+                  }
+                ]
+              }
+            ]
+            name "front_left_tower_standoff"
+            boundingObject Cylinder {
+              radius 0.006
+              height 0.205
+            }
+            physics Physics {
+              density -1
+              mass 0.260000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                1.960400e-07 5.262313e-05 5.262313e-05
+                0.000000e+00 0.000000e+00 0.000000e+00
+              ]
+            }
+          }
+          Solid {
+            translation 0.030630 -0.114310 0.147570
+            children [
+              Transform {
+                rotation 0.000000 1.000000 0.000000 1.570796
+                children [
+                  USE tower_standoff_visual
+                ]
+              }
+            ]
+            name "front_right_tower_standoff"
+            boundingObject Cylinder {
+              radius 0.006
+              height 0.205
+            }
+            physics Physics {
+              density -1
+              mass 0.260000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                1.960400e-07 5.262313e-05 5.262313e-05
+                0.000000e+00 0.000000e+00 0.000000e+00
+              ]
+            }
+          }
+          Solid {
+            translation -0.076070 0.090660 0.147570
+            children [
+              Transform {
+                rotation 0.000000 1.000000 0.000000 1.570796
+                children [
+                  USE tower_standoff_visual
+                ]
+              }
+            ]
+            name "rear_left_tower_standoff"
+            boundingObject Cylinder {
+              radius 0.006
+              height 0.205
+            }
+            physics Physics {
+              density -1
+              mass 0.260000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                1.960400e-07 5.262313e-05 5.262313e-05
+                0.000000e+00 0.000000e+00 0.000000e+00
+              ]
+            }
+          }
+          Solid {
+            translation -0.076070 -0.090660 0.147570
+            children [
+              Transform {
+                rotation 0.000000 1.000000 0.000000 1.570796
+                children [
+                  USE tower_standoff_visual
+                ]
+              }
+            ]
+            name "rear_right_tower_standoff"
+            boundingObject Cylinder {
+              radius 0.006
+              height 0.205
+            }
+            physics Physics {
+              density -1
+              mass 0.260000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                1.960400e-07 5.262313e-05 5.262313e-05
+                0.000000e+00 0.000000e+00 0.000000e+00
+              ]
+            }
+          }
+          Solid {
+            translation 0.000000 0.000000 0.252570
+            children [
+              DEF tower_sensor_plate_visual CadShape {
+                url "meshes/tower_sensor_plate.dae"
+              }
+            ]
+            name "tower_sensor_plate"
+            boundingObject Transform {
+              translation 0.000000 0.000000 0.001000
+              children [
+                Cylinder {
+                  radius 0.137
+                  height 0.003
+                }
+              ]
+            }
+            physics Physics {
+              density -1
+              mass 0.332000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                9.298230e-04 8.303350e-04 1.759859e-03
+                0.000000e+00 0.000000e+00 0.000000e+00
+              ]
+            }
+          }
+          Solid {
+            translation -0.040000 0.000000 0.098715
+            rotation 0.000000 0.000000 -1.000000 1.570796
+            children [
+              DEF rplidar_visual CadShape {
+                url "meshes/rplidar.dae"
+              }
+              Lidar {
+                name "rplidar"
+                fieldOfView 6.283185
+                horizontalResolution 640
+                numberOfLayers 1
+                near 0.120000 
+                minRange 0.150000
+                maxRange 12.000000
+              }
+            ]
+            name "rplidar_link"
+            boundingObject Transform {
+              translation 0.000000 0.013000 -0.019000
+              children [
+                Box {
+                   size 0.071000 0.100000 0.060000
+                }
+              ]
+            }
+            physics Physics {
+              density -1
+              mass 0.170000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                1.926667e-04 1.224142e-04 2.130808e-04
+                0.000000e+00 0.000000e+00 0.000000e+00
+              ]
+            }
+          }   
+          Solid {
+            translation -0.118000 0.000000 0.052570
+            children [
+              DEF camera_bracket_visual CadShape {
+               url "meshes/camera_bracket.dae"
+             }
+              Solid {
+               translation 0.047400 0.000000 0.091760
+               children [
+                  Shape {
+                    appearance Appearance {
+                      material Material {
+                         diffuseColor 0.13 0.13 0.13 
+                         emissiveColor 0.13 0.13 0.13  
+                      }
+                    }
+                    geometry Box{
+                      size 0.022500 0.097000 0.030000
+                    }
+                  }
+                  Solid {
+                    children [
+                      Camera {
+                        name "rgb_camera"
+                        width 1280
+                        height 720
+                        fieldOfView 1.15192
+                      }
+                      Solid {
+                        rotation -0.577350 0.577350 -0.577350 2.094395
+                        name "oakd_pro_rgb_camera_optical_frame"
+                        physics Physics {
+                          density -1
+                          mass 0.010000
+                          centerOfMass [ 0.000000 0.000000 0.000000 ]
+                          inertiaMatrix [
+                            1.666667e-07 1.666667e-07 1.666667e-07
+                            0.000000e+00 0.000000e+00 0.000000e+00
+                          ]
+                        }
+                      }
+                    ]
+                    name "oakd_pro_rgb_camera_frame"
+                    physics Physics {
+                      density -1
+                      mass 0.010000
+                      centerOfMass [ 0.000000 0.000000 0.000000 ]
+                      inertiaMatrix [
+                        1.666667e-07 1.666667e-07 1.666667e-07
+                        0.000000e+00 0.000000e+00 0.000000e+00
+                      ]
+                    }
+                  }
+                  Solid {
+                    translation 0.000000 0.037500 0.000000
+                    children [
+                      Solid {
+                        rotation -0.577350 0.577350 -0.577350 2.094395
+                        name "oakd_pro_left_camera_optical_frame"
+                        physics Physics {
+                          density -1
+                          mass 0.010000
+                          centerOfMass [ 0.000000 0.000000 0.000000 ]
+                          inertiaMatrix [
+                            1.666667e-07 1.666667e-07 1.666667e-07
+                            0.000000e+00 0.000000e+00 0.000000e+00
+                          ]
+                        }
+                      }
+                    ]
+                    name "oakd_pro_left_camera_frame"
+                    physics Physics {
+                      density -1
+                      mass 0.010000
+                      centerOfMass [ 0.000000 0.000000 0.000000 ]
+                      inertiaMatrix [
+                        1.666667e-07 1.666667e-07 1.666667e-07
+                        0.000000e+00 0.000000e+00 0.000000e+00
+                      ]
+                    }
+                  }
+                  Solid {
+                    translation 0.000000 -0.037500 0.000000
+                    children [
+                      Solid {
+                        rotation -0.577350 0.577350 -0.577350 2.094395
+                        name "oakd_pro_right_camera_optical_frame"
+                        physics Physics {
+                          density -1
+                          mass 0.010000
+                          centerOfMass [ 0.000000 0.000000 0.000000 ]
+                          inertiaMatrix [
+                            1.666667e-07 1.666667e-07 1.666667e-07
+                            0.000000e+00 0.000000e+00 0.000000e+00
+                          ]
+                        }
+                      }
+                    ]
+                    name "oakd_pro_right_camera_frame"
+                    physics Physics {
+                      density -1
+                      mass 0.010000
+                      centerOfMass [ 0.000000 0.000000 0.000000 ]
+                      inertiaMatrix [
+                        1.666667e-07 1.666667e-07 1.666667e-07
+                        0.000000e+00 0.000000e+00 0.000000e+00
+                      ]
+                    }
+                  }
+                  Solid {
+                    rotation -0.577350 0.577350 -0.577350 2.094395
+                    name "oakd_pro_imu_frame"
+                    physics Physics {
+                      density -1
+                      mass 0.010000
+                      centerOfMass [ 0.000000 0.000000 0.000000 ]
+                      inertiaMatrix [
+                        1.666667e-07 1.666667e-07 1.666667e-07
+                        0.000000e+00 0.000000e+00 0.000000e+00
+                      ]
+                    }
+                  }
+                ]
+                name "oakd_pro_link"
+                boundingObject Transform {
+                  translation 0 0 0 
+                  children [
+                    Box {
+                       size 0.022500 0.097000 0.030000
+                    }
+                  ]
+                }
+                physics Physics {
+                  density -1
+                  mass 0.061000
+                  centerOfMass [ 0.000000 0.000000 0.000000 ]
+                  inertiaMatrix [
+                    2.024750e-06 1.527320e-05 1.605536e-05
+                    0.000000e+00 0.000000e+00 0.000000e+00
+                  ]
+                }
+              }
+            ]
+            name "oakd_pro_camera_bracket"
+            physics Physics {
+              density -1
+              mass 0.033000
+              centerOfMass [ 0.000000 0.000000 0.000000 ]
+              inertiaMatrix [
+                5.791810e-05 5.597850e-05 1.409550e-05
+                0.000000e+00 9.067900e-06 0.000000e+00
+              ]
+            }
+          }
+        ]
+        name "shell_link"
+        boundingObject Transform {
+          translation 0.0 0.0 0.0265
+          rotation 0.000000 0.000000 1.000000 0
+          children [
+            Cylinder {
+              height 0.055
+              radius 0.14
+              subdivision 24
+            }
+          ]
+        }
+        physics Physics {
+          density -1
+          mass 0.390000
+          centerOfMass [ 0.000000 0.000000 0.000000 ]
+          inertiaMatrix [
+            2.812954e-03 1.646664e-03 4.245401e-03
+            -1.376750e-06 -5.790057e-05 5.644660e-06
+          ]
+        }
+      }
+      Solid {
+        translation 0.060053 0.087588 0.097885
+        children [
+          DEF weight_block_visual CadShape {
+            url "meshes/weight_block.dae"
+          }
+        ]
+        name "front_left_bottom_weight_block"
+        physics Physics {
+          density -1 
+          mass 0.061000
+          centerOfMass [ 0.100000 0.000000 0.000000 ] 
+          inertiaMatrix [
+            9.348200e-06 4.363820e-06 1.288852e-05
+            -3.374340e-06 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.060053 0.087588 0.106885
+        children [
+          USE weight_block_visual
+        ]
+        name "front_left_top_weight_block"
+        physics Physics {
+          density -1
+          mass 0.61000
+          centerOfMass [ 0.100000 0.000000 0.000000 ]
+          inertiaMatrix [
+            9.348200e-06 4.363820e-06 1.288852e-05
+            -3.374340e-06 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+     Solid {
+        translation 0.060053 -0.087588 0.097885
+        rotation 1.000000 0.000000 0.000000 3.141593
+        children [
+          USE weight_block_visual
+        ]
+        name "front_right_bottom_weight_block"
+        physics Physics {
+          density -1
+          mass 0.061000
+          centerOfMass [ 0.100000 0.000000 0.000000 ]
+          inertiaMatrix [
+            9.348200e-06 4.363820e-06 1.288852e-05
+            -3.374340e-06 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+      Solid {
+        translation 0.060053 -0.087588 0.106885
+        rotation 1.000000 0.000000 0.000000 3.141593
+        children [
+         USE weight_block_visual
+        ]
+        name "front_right_top_weight_block"
+        physics Physics {
+          density -1
+          mass 0.61000
+          centerOfMass [ 0.100000 0.000000 0.000000 ]
+          inertiaMatrix [
+            9.348200e-06 4.363820e-06 1.288852e-05
+            -3.374340e-06 0.000000e+00 0.000000e+00
+          ]
+        }
+      }
+    ]
+    name IS name
+    boundingObject Transform {
+      translation 0.000000 0.000000 0.049200
+      rotation 0.000000 0.000000 1.000000 1.570796
+      children [
+        Cylinder {
+          radius 0.16399999999999998
+          height 0.06
+        }
+      ]
+    }
+    physics Physics {
+      density -1
+      mass 2.300000
+      centerOfMass [ 0.000000 0.000000 0.074200 ]
+      inertiaMatrix [
+        1.615520e-02 1.615520e-02 3.093040e-02
+        0.000000e+00 0.000000e+00 0.000000e+00
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<robot name="My robot">
+    <webots>
+        <plugin type="llm_search.my_robot_driver.MyRobotDriver" />
+    </webots>
+</robot>
