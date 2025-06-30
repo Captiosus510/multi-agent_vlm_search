@@ -35,6 +35,7 @@ setup(
         'console_scripts': [
             'my_robot_driver = llm_search.my_robot_driver:main',
             'tb4_controller = llm_search.tb4_controller:main',
+            'camera_display = llm_search.camera_display:main',
         ],
     },
 )
