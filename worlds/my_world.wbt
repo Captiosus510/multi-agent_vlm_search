@@ -9,13 +9,14 @@ WorldInfo {
 Viewpoint {
   orientation -0.33185733874619844 -0.09874274160469809 0.9381474178937331 3.686018050088086
   position 1.700313773507203 1.0549607538959629 1.4846240848267684
-  follow "my_robot"
+  #follow "my_robot"
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 CircleArena {
+  radius 2
 }
 Turtlebot4{
   translation 0 0 0
