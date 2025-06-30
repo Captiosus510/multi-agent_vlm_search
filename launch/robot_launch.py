@@ -63,10 +63,10 @@ def generate_launch_description():
     return LaunchDescription([
         webots,
         my_robot_driver,
-        # other_robot_driver,
+        other_robot_driver,
         # controller_node,
         camera_viewer_my_robot,
-        # camera_viewer_other_robot,
+        camera_viewer_other_robot,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,
