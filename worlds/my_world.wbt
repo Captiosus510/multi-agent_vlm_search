@@ -23,9 +23,14 @@ Turtlebot4{
   controller "<extern>"
   name "my_robot"
 }
-
-Turtlebot4{
-  translation 0 0.5 0
-  controller "<extern>"
-  name "other_robot"
+WoodenBox{
+  translation 0.534105 -0.0503511 0.229922
+  size 0.2 0.2 0.2
+  mass 0
 }
+
+#Turtlebot4{
+#  translation 0 0.5 0
+#  controller "<extern>"
+#  name "other_robot"
+#}
