@@ -60,13 +60,27 @@ def generate_launch_description():
         ]
     )
 
+    shutdown_listener = Node(
+        package='llm_search',
+        executable='shutdown_listener',
+        output='screen',
+    )
+
+
     return LaunchDescription([
         webots,
         my_robot_driver,
-        other_robot_driver,
+        # other_robot_driver,
         # controller_node,
         camera_viewer_my_robot,
         camera_viewer_other_robot,
+        shutdown_listener,
+        launch.actions.RegisterEventHandler(
+            event_handler=launch.event_handlers.OnProcessExit(
+                target_action=camera_viewer_my_robot,
+                on_exit=[launch.actions.EmitEvent(event=launch.events.Shutdown())],
+            )
+        ),
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit(
                 target_action=webots,

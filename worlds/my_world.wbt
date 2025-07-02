@@ -3,6 +3,9 @@
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/floors/protos/CircleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/WoodenBox.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/utensils/protos/Glass.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/Chair.proto"
 EXTERNPROTO "../protos/Turtlebot4.proto"
 WorldInfo {
 }
@@ -29,8 +32,23 @@ WoodenBox{
   mass 0
 }
 
-Turtlebot4{
-  translation 0 0.5 0
-  controller "<extern>"
-  name "other_robot"
+Glass{
+  translation 0 -0.55 0
+  rotation 0 0 1 0
+  name "glass"
+  mass 0.17
 }
+
+Chair{
+  translation -2.37 -0.18 0
+  rotation 0 0 1 0
+  name "chair"
+  color 1 1 1
+  physics NULL
+}
+
+#Turtlebot4{
+#  translation 0 0.5 0
+#  controller "<extern>"
+#  name "other_robot"
+#}
