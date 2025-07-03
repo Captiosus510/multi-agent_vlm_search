@@ -22,8 +22,8 @@ class VLMServices(Node):
         You will set their goal and then confirm they have found it at the very end, since querying you takes a lot of time and can't be done in realtime.
 
         For now, you won't have to coordinate any robots. Here are your two primary objectives as a ROS2 Service Provider Node:
-        1. You will be given a prompt from the user that describes an object to look for. Each agent is equipped with YOLO11 trained on the COCO dataset, so you can use that to search for objects.
-        You have to take this input prompt and output comma seperated class names based on this list:
+        1. You will be given a prompt from the user that describes an object to look for. Each agent is equipped with YOLOE, an open vocab version of YOLO11 trained on the COCO dataset, so you can use that to search for objects.
+        This object detection model is trained on these 80 classes:
 
         person, bicycle, car, motorbike, aeroplane, bus, train, truck, boat, traffic light, fire hydrant,
         stop sign, parking meter, bench, bird, cat, dog, horse, sheep,
@@ -36,8 +36,16 @@ class VLMServices(Node):
         remote, keyboard, cell phone, microwave, oven, toaster, sink,
         refrigerator, book, clock, vase, scissors, teddy bear, hair drier,
         toothbrush
+        
+        Keep in mind that this is an OPEN VOCABULARY model, and is able to detect objects that are not in this class list. 
+        You should take user input and break it down into separate classes for YOLOE to search for, try to make them related to COCO classes, but don't be afraid to include other relevant classes as needed.
+        YOLO can't distinguish colors. Here are some examples:
 
-        Make sure the most closely related class names are at the top of the list and only output a max of 3.
+        1. cup and a chair -> cup, chair
+        2. a red ball and a  table -> ball, table
+        3. a cabinet with a flowerpot and light on top -> cabinet, flowerpot, light
+
+        Output a comma separated list of class names. When all these names are detected, the robot will send you an image to analyze.
 
         2. You will also be requested to confirm if the robot has found the object or not. You will get an image to analyze
         when the robot has a high confidence that it has found the object. Since you are better able to describe images, you will be the 
@@ -75,8 +83,8 @@ class VLMServices(Node):
         self.get_logger().info(f"Goal: {goal}")
         
         # Parse the response
-        goal = goal.strip().split(',')
-        self.parsed_prompt = goal[0]
+        # goal = goal.strip().split(',')
+        self.parsed_prompt = goal
 
         self.analyzed_prompt = True
         self.get_logger().info(f"Parsed prompt: {self.parsed_prompt}")
