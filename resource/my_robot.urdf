@@ -2,5 +2,9 @@
 <robot name="My robot">
     <webots>
         <plugin type="llm_search.my_robot_driver.MyRobotDriver" />
+        <device>
+            <name>imu</name>
+            <plugin>webots_ros2_driver/Imu</plugin>
+        </device>
     </webots>
 </robot>

@@ -20,11 +20,11 @@ class OpenAIInterface:
         self.add_message("user", message)
         response = self.client.responses.create(
             model=self.model,
-            input=self.messages,
+            input=self.messages,  # type: ignore
             tools=[],
             tool_choice="auto",
             stream=False
-        )
+        ) # type: ignore
 
         output_text = response.output_text
         self.add_message("assistant", output_text)

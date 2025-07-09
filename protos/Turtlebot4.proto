@@ -886,6 +886,14 @@ PROTO Turtlebot4 [
                         height 720
                         fieldOfView 1.15192
                       }
+                      RangeFinder{
+                        name "depth_sensor"
+                        fieldOfView 1.15192
+                        width 1280
+                        height 720
+                        near 0.01
+                        maxRange 10.0
+                      }
                       Solid {
                         rotation -0.577350 0.577350 -0.577350 2.094395
                         name "oakd_pro_rgb_camera_optical_frame"

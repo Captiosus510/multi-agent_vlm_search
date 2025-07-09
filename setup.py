@@ -40,6 +40,7 @@ setup(
             'camera_display = llm_search.camera_display:main',
             'vlm_services = llm_search.vlm_services:main',
             'shutdown_listener = llm_search.shutdown_listener:main',
+            'mapper = llm_search.mapping:main',
         ],
     },
 )
