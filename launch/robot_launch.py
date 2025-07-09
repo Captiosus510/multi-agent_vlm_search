@@ -29,6 +29,7 @@ def generate_launch_description():
         ]
     )
 
+  
     my_robot_mapper = Node(
         package='llm_search',
         executable='mapper',
@@ -80,6 +81,7 @@ def generate_launch_description():
         webots,
         my_robot_driver,
         my_robot_mapper,
+        # my_robot_mapper,
         # other_robot_driver,
         # controller_node,
         # camera_viewer_my_robot,
