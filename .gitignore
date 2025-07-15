@@ -51,3 +51,10 @@ qtcreator-*
 CATKIN_IGNORE
 
 *.jpg
+*.png
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.webp
+*.svg
