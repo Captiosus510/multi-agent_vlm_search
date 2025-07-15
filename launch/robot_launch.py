@@ -19,7 +19,7 @@ def generate_launch_description():
     # other_robot_description_path = os.path.join(package_dir, 'resource', 'other_robot.urdf')
 
     webots = WebotsLauncher(
-        world=os.path.join(package_dir, 'worlds', 'detection_test.wbt')
+        world=os.path.join(package_dir, 'worlds', 'break_room.wbt')
     )
 
     my_robot_driver = WebotsController(
@@ -32,17 +32,29 @@ def generate_launch_description():
   
     my_robot_mapper = Node(
         package='llm_search',
-        executable='mapper',
+        executable='local_mapper',
         output='screen',
         parameters=[
             {'robot_name': 'my_robot'},
+            {'show_maps': False},  # Enable map display for the main robot
         ]
     )
 
+    
     other_robot_driver = WebotsController(
         robot_name='other_robot',
         parameters=[
             {'robot_description': robot_description_path},
+        ]
+    )
+
+    other_robot_mapper = Node(
+        package='llm_search',
+        executable='local_mapper',
+        output='screen',
+        parameters=[
+            {'robot_name': 'other_robot'},
+            {'show_maps': False},  # Disable map display for the other robot
         ]
     )
 
@@ -70,23 +82,25 @@ def generate_launch_description():
         ]
     )
 
-    shutdown_listener = Node(
+    global_mapper = Node(
         package='llm_search',
-        executable='shutdown_listener',
+        executable='global_map_merger',
         output='screen',
+        parameters=[
+            {'robot_names': ['my_robot', 'other_robot']},
+            {'show_maps': True}  # Enable global map display
+        ]
     )
-
 
     return LaunchDescription([
         webots,
-        my_robot_driver,
+        my_robot_driver, 
         my_robot_mapper,
-        # my_robot_mapper,
-        # other_robot_driver,
-        # controller_node,
+        other_robot_driver,
+        other_robot_mapper,
         # camera_viewer_my_robot,
-        camera_viewer_other_robot,
-        shutdown_listener,
+        # camera_viewer_other_robot,
+        global_mapper,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore
                 target_action=camera_viewer_my_robot,

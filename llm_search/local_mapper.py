@@ -6,14 +6,20 @@ from sensor_msgs.msg import Image, CameraInfo, Imu
 from rclpy.node import Node
 from message_filters import Subscriber, ApproximateTimeSynchronizer
 from geometry_msgs.msg import PointStamped
+from std_msgs.msg import String
 
-class Mapper(Node):
-    map_size = (500, 500)  # Size of the map in pixels
+class LocalMapper(Node):
+    map_size = (250, 250)  # Size of the map in pixels
     resolution = 0.05  # Resolution of the map in meters per pixel
     
-    def __init__(self, robot_name: str):
+    def __init__(self):
         super().__init__('mapper')
-        self.robot_name = robot_name
+        self.declare_parameter('robot_name', 'my_robot')
+        self.robot_name = self.get_parameter('robot_name').get_parameter_value().string_value
+
+        self.declare_parameter('show_maps', True)
+        self.show_maps = self.get_parameter('show_maps').get_parameter_value().bool_value
+
         self.bridge = CvBridge()
         self.siglip_interface = SigLipInterface()
         self.goal = None
@@ -40,8 +46,15 @@ class Mapper(Node):
         # subscribe to image topic
         self.image_subscription = Subscriber(self, Image, f'/{self.robot_name}/rgb_camera/image_color')
         self.get_logger().info(f'Subscribed to image topic: /{self.robot_name}/rgb_camera/image_color')
+        # subscribe to goal topic
+        self.goal_subscription = self.create_subscription(String, f'robot_goal', self.goal_callback, 10)
+        self.get_logger().info(f'Subscribed to goal topic: /robot_goal')
+        # local map publishers
+        self.local_semantic_map_pub = self.create_publisher(
+        Image, f'/{self.robot_name}/local_semantic_map', 10)
 
-        self.goal = "ball"
+        self.local_confidence_map_pub = self.create_publisher(
+        Image, f'/{self.robot_name}/local_confidence_map', 10)
 
         self.ts = ApproximateTimeSynchronizer(
             [self.depth_info_subscription, self.depth_sensor_subscription, 
@@ -50,6 +63,13 @@ class Mapper(Node):
             slop=1.0  # Adjust the slop as needed
         )
         self.ts.registerCallback(self.update_map)
+    
+    def goal_callback(self, msg: String):
+        """Callback to update the goal from the robot's goal topic."""
+        if self.goal != msg.data:
+            self.get_logger().info(f"Received new goal: {msg.data}")
+            self.goal = msg.data.split(',')
+        
 
     def create_cone_mask(self, robot_x, robot_y, robot_yaw, depth_array, fx, fy, cx, cy):
         """Create a cone-shaped mask representing the camera FOV with confidence scores"""
@@ -173,10 +193,26 @@ class Mapper(Node):
         for i in range(3):  # RGB channels
             blended_map[:, :, i] = (semantic_colored[:, :, i] * confidence_normalized).astype(np.uint8)
         
-        # Display both maps
-        cv2.imshow('Semantic Value Map', blended_map)
-        cv2.imshow('Confidence Map', (confidence_normalized * 255).astype(np.uint8))
-        cv2.waitKey(1)
+        # Display both maps if enabled
+        if self.show_maps:
+            cv2.imshow(f'{self.robot_name} Semantic Value Map', blended_map)
+            cv2.imshow(f'{self.robot_name} Confidence Map', (confidence_normalized * 255).astype(np.uint8))
+            cv2.waitKey(1)
+
+        # Publish the local colorized map
+        semantic_msg = self.bridge.cv2_to_imgmsg(blended_map, encoding='bgr8')
+
+        confidence_vis = (confidence_normalized * 255).astype(np.uint8)
+        confidence_msg = self.bridge.cv2_to_imgmsg(confidence_vis, encoding='mono8')
+
+        semantic_msg.header.stamp = self.get_clock().now().to_msg()
+        semantic_msg.header.frame_id = "map"
+        confidence_msg.header.stamp = semantic_msg.header.stamp
+        confidence_msg.header.frame_id = "map"
+
+        self.local_semantic_map_pub.publish(semantic_msg)
+        self.local_confidence_map_pub.publish(confidence_msg)
+
 
     def get_value_map_data(self):
         """Return the current semantic value map and confidence map for external use"""
@@ -193,11 +229,11 @@ class Mapper(Node):
         confidence_img = (np.clip(self.confidence_map, 0, 1) * 255).astype(np.uint8)
         cv2.imwrite(f"{filename_prefix}_confidence.png", confidence_img)
         
-        self.get_logger().info(f"Value maps saved with prefix: {filename_prefix}")
+        # self.get_logger().info(f"Value maps saved with prefix: {filename_prefix}")
 
     def update_map(self, depth_info_msg: CameraInfo, depth_msg: Image, imu_msg: Imu, gps_msg: PointStamped, image_msg: Image):
         
-        self.get_logger().info(f"Updating value map with semantic confidence scores")
+        # self.get_logger().info(f"Updating value map with semantic confidence scores")
         
         # Extract camera parameters from the depth info message
         fx = depth_info_msg.k[0]  # Focal length in x
@@ -225,8 +261,8 @@ class Mapper(Node):
         
         semantic_score = 0.0
         if self.goal is not None:
-            semantic_score = self.siglip_interface.cosine_similarity(rgb_image, self.goal)
-            self.get_logger().info(f"Semantic score for goal '{self.goal}': {semantic_score:.3f}")
+            semantic_score = self.siglip_interface.compute_confidence(rgb_image, self.goal)
+            self.get_logger().info(f"Semantic score for goal: {semantic_score:.3f}")
 
         # Create cone-shaped mask with confidence scores
         cone_mask, confidence_mask = self.create_cone_mask(
@@ -243,8 +279,7 @@ class Mapper(Node):
 def main(args=None):
     import rclpy
     rclpy.init(args=args)
-    robot_name = 'my_robot'  # Replace with your robot name
-    mapper = Mapper(robot_name)
+    mapper = LocalMapper()
     rclpy.spin(mapper)
     mapper.destroy_node()
     rclpy.shutdown()
