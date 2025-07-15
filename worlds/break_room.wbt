@@ -24,6 +24,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/computers/protos/Keyboard.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/OfficeChair.proto"
 EXTERNPROTO "../protos/Turtlebot4.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/animals/protos/Cat.proto"
 
 WorldInfo {
   info [
@@ -35,8 +36,8 @@ WorldInfo {
   title "Break Room"
 }
 Viewpoint {
-  orientation 0.4458343041569776 0.4569144433838094 -0.7697148593239754 1.8057895423611958
-  position -0.7044527419796355 13.21173644404196 23.511345935477156
+  orientation 0.24223444750867254 0.051500296578894274 -0.968849932596609 2.7353100593668973
+  position 3.6857029991860553 2.291384110466579 2.7714408373875226
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -1173,6 +1174,15 @@ OfficeChair {
   name "office chair(5)"
 }
 Turtlebot4 {
+  translation 0 -1.51 0
   name "my_robot"
   controller "<extern>"
+}
+Turtlebot4 {
+  translation 0 4.14 0
+  name "other_robot"
+  controller "<extern>"
+}
+Cat {
+  translation 0 0.86 0
 }

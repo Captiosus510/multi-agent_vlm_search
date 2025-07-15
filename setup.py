@@ -20,6 +20,7 @@ data_files.append(('share/' + package_name + '/protos/meshes', [
 ]))
 
 data_files.append(('share/' + package_name, ['package.xml']))
+data_files.append(('share/' + package_name, ['slam_params.yaml']))
 
 setup(
     name=package_name,
@@ -39,7 +40,8 @@ setup(
             'tb4_controller = llm_search.tb4_controller:main',
             'camera_display = llm_search.camera_display:main',
             'vlm_services = llm_search.vlm_services:main',
-            'mapper = llm_search.mapping:main',
+            'local_mapper = llm_search.local_mapper:main',
+            'global_map_merger = llm_search.global_mapper:main',
         ],
     },
 )

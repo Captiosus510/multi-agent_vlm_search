@@ -4,7 +4,7 @@ import time
 from openai import OpenAI
 import json, cv2
 from llm_search.utils.openai import OpenAIInterface
-from llm_search_interfaces.srv import Analysis
+# from llm_search_interfaces.srv import Analysis
 import cv2
 from cv_bridge import CvBridge
 from std_msgs.msg import String
@@ -21,32 +21,16 @@ class VLMServices(Node):
         and report back to a central node. You are the one who will provide them with information about their tasks.
         You will set their goal and then confirm they have found it at the very end, since querying you takes a lot of time and can't be done in realtime.
 
-        For now, you won't have to coordinate any robots. Here are your two primary objectives as a ROS2 Service Provider Node:
-        1. You will be given a prompt from the user that describes an object to look for. Each agent is equipped with YOLOE, an open vocab version of YOLO11 trained on the COCO dataset, so you can use that to search for objects.
-        This object detection model is trained on these 80 classes:
-
-        person, bicycle, car, motorbike, aeroplane, bus, train, truck, boat, traffic light, fire hydrant,
-        stop sign, parking meter, bench, bird, cat, dog, horse, sheep,
-        cow, elephant, bear, zebra, giraffe, backpack, umbrella, handbag, tie
-        suitcase, frisbee, skis, snowboard, sports ball, kite, baseball bat,
-        baseball glove, skateboard, surfboard, tennis racket, bottle, wine glass,
-        cup, fork, knife, spoon, bowl, banana, apple, sandwich, orange,
-        broccoli, carrot, hot dog, pizza, donut, cake, chair, sofa,
-        pottedplant, bed, diningtable, toilet, tvmonitor, laptop, mouse,
-        remote, keyboard, cell phone, microwave, oven, toaster, sink,
-        refrigerator, book, clock, vase, scissors, teddy bear, hair drier,
-        toothbrush
         
-        Keep in mind that this is an OPEN VOCABULARY model, and is able to detect objects that are not in this class list. 
-        You should take user input and break it down into separate classes for YOLOE to search for, try to make them related to COCO classes, but don't be afraid to include other relevant classes as needed.
-        YOLO can't distinguish colors. Here are some examples:
 
-        1. cup and a chair -> cup, chair
-        2. a red ball and a  table -> ball, table
-        3. a cabinet with a flowerpot and light on top -> cabinet, flowerpot, light
-
-        Output a comma separated list of class names. When all these names are detected, the robot will send you an image to analyze.
-
+        For now, you won't have to coordinate any robots. Here are your two primary objectives as a ROS2 Node:
+        1. You will be given a prompt from the user that describes an object to look for. We want to generate a semantic map of the environment using this goal prompt.
+        Each robot has SigLip, a vision-language model, that will be used to compute the confidence of the robot in finding the object in the frame it is looking at. 
+        SigLip benefits from having multiple descriptive prompts, so you should take what the user inputs and return a list of 10 related prompts that describe the object and are descriptive.
+```
+        For example, if the user inputs "a silver cat at home", you could return a list of
+        an image of a silver cat lying on wooden floor, a photo of a cat, a close-up photo of a cat, a photo in the direction of a cat, a photo of a cat sitting on a couch, etc.
+        
         2. You will also be requested to confirm if the robot has found the object or not. You will get an image to analyze
         when the robot has a high confidence that it has found the object. Since you are better able to describe images, you will be the 
         one to confirm if the object is indeed the one the user is looking for. Output a simple "yes" or "no" response based on the image.
@@ -57,7 +41,7 @@ class VLMServices(Node):
     def __init__(self):
         super().__init__('vlm_services')
         self.interface = OpenAIInterface(self.system_prompt, model="gpt-4o")
-        self.analysis_service = self.create_service(Analysis, 'analysis', self.analysis_callback)
+        # self.analysis_service = self.create_service(Analysis, 'analysis', self.analysis_callback)
         self.goal_publisher = self.create_publisher(String, 'robot_goal', 10)
         self.timer = self.create_timer(2, self.timer_callback)
         self.get_logger().info('VLM Services Node has been started. Waiting for requests...')
@@ -76,11 +60,11 @@ class VLMServices(Node):
         self.get_logger().info(f"Parsing user input prompt: {self.input_prompt}")
 
         # Get the response from the OpenAI API
-        self.interface.add_message("system", "Based on the user's input, provide a comma separated list of class names from the COCO dataset that best describes the object.")
+        self.interface.add_message("system", "Based on the user's input, provide a list of 10 descriptive prompts that can be used to search for the object. MAKE SURE IT'S IN A COMMA SEPARATED FORMAT (Ex. prompt1, prompt2, ...)")
         goal = self.interface.get_response(self.input_prompt)
         self.interface.add_message("assistant", goal)
 
-        self.get_logger().info(f"Goal: {goal}")
+        # self.get_logger().info(f"Goal: {goal}")
         
         # Parse the response
         # goal = goal.strip().split(',')

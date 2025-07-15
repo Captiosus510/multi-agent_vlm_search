@@ -107,7 +107,8 @@ class CameraViewer(Node):
         Returns:
             float: The confidence score.
         """
-        return self.siglip_interface.cosine_similarity(image, goal) 
+        # return self.siglip_interface.compute_confidence(image, goal) 
+        return 0.00
 
 
 def main(args=None):
