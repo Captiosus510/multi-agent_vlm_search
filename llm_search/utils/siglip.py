@@ -1,4 +1,4 @@
-from transformers import AutoProcessor, AutoModel
+from transformers import AutoModel, AutoProcessor
 import numpy as np
 import torch
 from PIL import Image
@@ -12,7 +12,7 @@ class SigLipInterface:
     It uses the Hugging Face Transformers library to load the model and extract embeddings.
     """
 
-    def __init__(self, model_name="google/siglip-base-patch16-224", temperature=0.07):
+    def __init__(self, model_name="google/siglip2-so400m-patch14-224", temperature=0.07):
         """
         Initializes the SigLip model.
 
@@ -25,11 +25,7 @@ class SigLipInterface:
         self.model = AutoModel.from_pretrained(model_name, device_map="auto")
         self.model.eval()  # Set to evaluation mode
         self.temperature = temperature  # Temperature scaling for cosine similarity
-        self.pipe = pipeline(
-            model=self.model_name,
-            task="zero-shot-image-classification",
-            device=self.device,
-        )
+        self.negative_prompts = ["a photo of nothing", "random background"]
 
     def compute_confidence(self, frame: np.ndarray, goal: list[str]) -> float:
         """
@@ -42,19 +38,29 @@ class SigLipInterface:
         Returns:
             float: The cosine similarity score between image and text embeddings.
         """
+        all_prompts = goal + self.negative_prompts
 
-        image = Image.fromarray(frame) if isinstance(frame, np.ndarray) else frame
-        outputs = self.pipe(image, candidate_labels=goal)
+        # image = Image.fromarray(frame) if isinstance(frame, np.ndarray) else frame
+        # outputs = self.pipe(image, candidate_labels=goal)
 
-        average_score = 0.0
-        for output in outputs:
-            average_score += output['score']
-        average_score /= len(outputs)
-        return average_score
-        
-        # similarity = (self.get_image_embedding(frame) @ self.get_text_embedding(goal).T).squeeze(0) 
-        # final_score = similarity.mean().item()
-        # return final_score
+        # average_score = 0.0
+        # for output in outputs:
+        #     average_score += output['score']
+        # average_score /= len(outputs)
+        # return average_score
+
+        similarity = self.get_image_embedding(frame) @ self.get_text_embedding(all_prompts).T
+
+        print("Similarity", similarity.cpu().numpy())
+
+        logits = similarity / self.temperature
+        probs = torch.softmax(logits, dim=-1)
+        # Take sum of probs for cat prompts vs sum for negative
+        cat_probs = probs[:, :len(goal)].max().sum()
+        neg_probs = probs[:, len(goal):].max().sum()
+
+        final_score = cat_probs / (cat_probs + neg_probs)
+        return final_score.item()  # Convert to Python float for easier handling
 
     def get_image_embedding(self, frame: np.ndarray) -> torch.Tensor:
         """
@@ -107,15 +113,11 @@ def main():
     # Example usage
     siglip = SigLipInterface()
     print(torch.cuda.is_available())
-    image = Image.open("llm_search/utils/living_room.jpg").convert("RGB")
+    image = Image.open("llm_search/utils/test_images/silver_cat.jpg").convert("RGB")
     image = np.array(image)
-    goal = ["an image of a silver cat lying on wooden floor",
-            "a photo of a cat", "a close-up photo of a cat",
-            "a photo in the direction of a silver cat",
-            ]
-
+    goal = ["a photo of a cat"]
     score = siglip.compute_confidence(image, goal)
     print(f"Cosine similarity score: {score:.4f}")
-
+    
 if __name__ == "__main__":
     main()

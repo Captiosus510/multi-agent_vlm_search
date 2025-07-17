@@ -3,11 +3,13 @@ from setuptools import setup, find_packages
 package_name = 'llm_search'
 data_files = []
 data_files.append(('share/ament_index/resource_index/packages', ['resource/' + package_name]))
-data_files.append(('share/' + package_name + '/launch', ['launch/robot_launch.py']))
+data_files.append(('share/' + package_name + '/launch', ['launch/world_launch.py']))
+data_files.append(('share/' + package_name + '/launch', ['launch/spawn_robot.py']))
 data_files.append(('share/' + package_name + '/worlds', ['worlds/my_world.wbt']))
 data_files.append(('share/' + package_name + '/worlds', ['worlds/break_room.wbt']))
 data_files.append(('share/' + package_name + '/worlds', ['worlds/detection_test.wbt']))
-data_files.append(('share/' + package_name + '/resource', ['resource/my_robot.urdf']))
+data_files.append(('share/' + package_name + '/resource', ['resource/tb4.urdf']))
+data_files.append(('share/' + package_name + '/resource', ['resource/global_cam.urdf']))
 data_files.append(('share/' + package_name + '/protos', ['protos/Turtlebot4.proto']))
 data_files.append(('share/' + package_name + '/protos/meshes', [
     'protos/meshes/body_visual.dae',
@@ -29,8 +31,8 @@ setup(
     data_files=data_files,
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='user',
-    maintainer_email='user.name@mail.com',
+    maintainer='Mahd Afzal',
+    maintainer_email='afzalmahd@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],

@@ -14,7 +14,9 @@ class CameraViewer(Node):
         super().__init__('camera_viewer')
         self.bridge = CvBridge()
         self.declare_parameter('robot_name', 'my_robot')
+        self.declare_parameter('has_depth', True)
         self.robot_name = self.get_parameter('robot_name').get_parameter_value().string_value
+        self.has_depth = self.get_parameter('has_depth').get_parameter_value().bool_value
         self.window_name = f"{self.robot_name} Camera View"
 
         # Subscribe to the camera topic
@@ -25,26 +27,26 @@ class CameraViewer(Node):
             10
         )
         self.get_logger().info('Subscribed to camera topic')
-        # subscribe to depth camera topic
-        self.depth_subscription = self.create_subscription(
-            Image,
-            f'/{self.robot_name}/depth_sensor/image',
-            self.depth_callback,
-            10
-        )
-        # subscribe to goal topic
-        self.goal_subscription = self.create_subscription(
-            String,
-            f'/{self.robot_name}/robot_goal',
-            self.goal_callback,
-            10
-        )
-        self.get_logger().info('Subscribed to goal topic')
-        # Initialize goal variable
-        self.goal = None
-        # Initialize SigLip interface
-        self.siglip_interface = SigLipInterface()
-        self.counter = 0
+        # subscribe to depth camera topic if it exists
+        if self.has_depth:
+            self.depth_subscription = self.create_subscription(
+                Image,
+                f'/{self.robot_name}/depth_sensor/image',
+                self.depth_callback,
+                10
+            )
+        # # subscribe to goal topic
+        # self.goal_subscription = self.create_subscription(
+        #     String,
+        #     f'/{self.robot_name}/robot_goal',
+        #     self.goal_callback,
+        #     10
+        # )
+        # self.get_logger().info('Subscribed to goal topic')
+        # # Initialize goal variable
+        # self.goal = None
+        # # Initialize SigLip interface
+        # self.counter = 0
 
     def goal_callback(self, msg):
         if self.goal is None or self.goal != msg.data:
@@ -58,9 +60,6 @@ class CameraViewer(Node):
             # Convert ROS Image message to OpenCV image (BGR by default)
             cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
             img_rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-            # if self.counter % 20 == 0:
-            #     score = self.get_score(img_rgb, self.goal) if self.goal else 0.0
-            #     self.get_logger().info(f"Confidence score for goal '{self.goal}': {score:.2f}")
         except Exception as e:
             self.get_logger().error(f"CV Bridge error: {e}")
             return

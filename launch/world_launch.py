@@ -18,10 +18,21 @@ def generate_launch_description():
     robot_description_path = os.path.join(package_dir, 'resource', 'my_robot.urdf')
     # other_robot_description_path = os.path.join(package_dir, 'resource', 'other_robot.urdf')
 
+    global_cam_path = os.path.join(package_dir, 'resource', 'global_cam.urdf')
+
     webots = WebotsLauncher(
-        world=os.path.join(package_dir, 'worlds', 'break_room.wbt')
+        world=os.path.join(package_dir, 'worlds', 'break_room.wbt'),
+        ros2_supervisor=True
     )
 
+    global_cam = WebotsController(
+        robot_name='global_cam',
+        parameters=[
+            {'robot_description': global_cam_path},
+        ]
+    )
+
+    
     my_robot_driver = WebotsController(
         robot_name='my_robot',
         parameters=[
@@ -64,6 +75,16 @@ def generate_launch_description():
         output='screen'
     )
 
+    camera_viewer_global = Node(
+        package='llm_search',
+        executable='camera_display',
+        output='screen',
+        parameters=[
+            {'robot_name': 'global_cam'},
+            {'has_depth': False}  # Global camera does not have depth
+        ]
+    )
+
     # Camera viewer node
     camera_viewer_my_robot = Node(
         package='llm_search',
@@ -94,19 +115,16 @@ def generate_launch_description():
 
     return LaunchDescription([
         webots,
-        my_robot_driver, 
-        my_robot_mapper,
-        other_robot_driver,
-        other_robot_mapper,
+        webots._supervisor,
+        global_cam,
+        camera_viewer_global,
+        # my_robot_driver, 
+        # my_robot_mapper,
+        # other_robot_driver,
+        # other_robot_mapper,
         # camera_viewer_my_robot,
         # camera_viewer_other_robot,
-        global_mapper,
-        launch.actions.RegisterEventHandler(
-            event_handler=launch.event_handlers.OnProcessExit( # type: ignore
-                target_action=camera_viewer_my_robot,
-                on_exit=[launch.actions.EmitEvent(event=launch.events.Shutdown())],
-            )
-        ),
+        # global_mapper,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore
                 target_action=webots,
