@@ -60,13 +60,7 @@ Floor {
     }
   }
 }
-Glass {
-  translation -0.09 0.34 0.01
-}
-OfficeTelephone {
-  translation 0.196076 0.289922 0
-  rotation 0 0 1 2.61799
-}
+
 CeilingSpotLight {
   translation -1.82 -2.27 2
   name "ceiling spot light"
@@ -1182,12 +1176,12 @@ OfficeChair {
   name "office chair(5)"
 }
 Robot {
-  translation 0.12066 1.21 21.7627
-  rotation -0.5773489358556708 -0.5773509358554485 0.5773509358554485 -2.0944
+  translation 0.26062 0.96 15.4927
+  rotation 0.5773489358556708 -0.5773509358554485 -0.5773509358554485 -2.0944
   children [
     Camera {
       name "rgb_camera"
-      width 1280
+      width 1190
       height 720
     }
   ]
