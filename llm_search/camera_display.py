@@ -46,7 +46,7 @@ class CameraViewer(Node):
         # # Initialize goal variable
         # self.goal = None
         # # Initialize SigLip interface
-        # self.counter = 0
+        self.counter = 0
 
     def goal_callback(self, msg):
         if self.goal is None or self.goal != msg.data:
