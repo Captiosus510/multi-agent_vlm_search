@@ -37,13 +37,14 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [    
-            'my_robot_driver = llm_search.my_robot_driver:main',
-            'tb4_controller = llm_search.tb4_controller:main',
+        'console_scripts': [
+            'robot_driver = llm_search.robot_driver:main',
+            'navigator = llm_search.navigator:main',
             'camera_display = llm_search.camera_display:main',
             'vlm_services = llm_search.vlm_services:main',
             'local_mapper = llm_search.local_mapper:main',
             'global_map_merger = llm_search.global_mapper:main',
+            'detector = llm_search.detector:main',
         ],
     },
 )

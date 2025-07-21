@@ -12,7 +12,7 @@ from std_msgs.msg import String
 import tempfile
 import subprocess
 import numpy as np
-
+from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from webots_ros2_msgs.srv import SpawnNodeFromString
 import re
@@ -52,11 +52,12 @@ class VLMServices(Node):
             The robots will spawn in the middle of the grid cell.
             
             When you choose a number for a grid cell, you should use the following format:
-            SPAWN ROBOT AT: <cell_number> <robot_name>
+            SPAWN ROBOT AT: <cell_number> <robot_name> <behavior>
             where <cell_number> is the number of the grid cell you want to spawn the robot in, and <robot_name> is the name of the robot you want to spawn. 
+            The <behavior> is either "monitor" or "search".
             The <cell_number> should be an integer, and the <robot_name> should be a string without spaces. 
-            For example, if you want to spawn a robot named "my_robot" in the grid cell number 5, you should send the message:
-            SPAWN ROBOT AT: 5 my_robot
+            For example, if you want to spawn a robot named "my_robot" in the grid cell number 5 to monitor, you should send the message:
+            SPAWN ROBOT AT: 5 my_robot monitor
 
             IT IS VERY IMPORTANT THAT YOU FOLLOW THIS FORMAT EXACTLY, OTHERWISE THE SYSTEM WILL NOT WORK. 
             
@@ -64,45 +65,36 @@ class VLMServices(Node):
 
             DO NOT SPAWN A ROBOT IN AN OCCLUDED AREA.
         
-        3. The user may want to set a goal for the robot to search for an object.
+        3. The user may want to set a goal for the robot to look for while monitoring or for searching.
             You will be given a prompt from the user that describes an object to look for.
-
             Simply take this prompt and simplify to a few words that describe the object.
-            For example, if the user inputs "a silver cat at home", you could return a list of
-            silver cat, cat at home, cat on wooden floor
 
-            MAKE SURE IT's A COMMA SEPARATED LIST OF PROMPTS, NOT A SINGLE STRING. YOU MAY RETURN UP TO 3 PROMPTS.
+            The exact format is:
+            FINAL_PROMPTS: <comma-separated list of prompts>
+            where <comma-separated list of prompts> is a list of up to 3 prompts that
+            describe the object to look for. The prompts should be related to the object and should help
+            the robot to find the object in the environment.
+
+            For example, input is "a silver cat next to my sofa", you could return a list of
+            silver cat, cat next to sofa, cat on wooden floor
+
+            MAKE SURE IT's A COMMA SEPARATED LIST OF PROMPTS. YOU MAY RETURN UP TO 3 PROMPTS.
             The robot will use these prompts to search for the object in the environment.
 
         """
-
-        # For now, you won't have to coordinate any robots directly. You do have the ability to converse with the user.
-        
-        # Here are your two primary objectives as a ROS2 Node:
-#         1. You will be given a prompt from the user that describes an object to look for. We want to generate a semantic map of the environment using this goal prompt.
-#         Each robot has SigLip, a vision-language model, that will be used to compute the confidence of the robot in finding the object in the frame it is looking at. 
-#         SigLip benefits from having multiple descriptive prompts, so you should take what the user inputs and return a list of 2 related prompts that describe the object.
-# ```
-#         For example, if the user inputs "a silver cat at home", you could return a list of
-#         an image of a silver cat lying on wooden floor, a photo of a cat, a close-up photo of a cat, a photo in the direction of a cat, a photo of a cat sitting on a couch, etc.
-        
-#         2. You will also be able to analyze images from a global bird's eye view camera. If you want to take a picture, send a message back while 
-#         that says "TAKE PICTURE" and the system will send a picture to you. IT IS VERY IMPORTANT THAT YOU ONLY ASK FOR A PICTURE WHEN YOU ARE READY TO ANALYZE IT.
-#         IT IS ALSO VERY IMPORTANT THAT THE REQUEST MESSAGE IS "TAKE PICTURE" EXACTLY LIKE THIS, OTHERWISE THE SYSTEM WILL NOT WORK.
-
-        # """
     
     def __init__(self):
         super().__init__('vlm_services')
         self.interface = OpenAIInterface(self.system_prompt, model="gpt-4o", max_messages=100)
-        self.goal_publisher = self.create_publisher(String, 'robot_goal', 10)
-        self.timer = self.create_timer(2, self.timer_callback)
-        self.get_logger().info('VLM Services Node has been started. Waiting for requests...')
+        self.get_logger().info('VLM Services Node has been started')
 
         self.conversation_state = False
         self.parsed_prompt = None
         self.declare_parameter('input_prompt', 'User forgot to specify input prompt, begin the conversation with the user.')
         self.input_prompt = self.get_parameter('input_prompt').get_parameter_value().string_value
+
+        self.goal_publisher = self.create_publisher(String, 'robot_goal', 10)
+        self.goal_timer = self.create_timer(2, self.timer_callback)
 
         self.global_cam_subscription = self.create_subscription(
             Image,
@@ -113,6 +105,9 @@ class VLMServices(Node):
 
         self.latest_image = np.zeros((1, 1, 3), dtype=np.uint8)  # empty black image as placeholder
         self.bridge = CvBridge()
+
+        self.image_preprocess_callback = self.create_timer(0.1, self.image_preprocess)
+        self.latest_preprocessed = np.zeros((1, 1, 3), dtype=np.uint8)  # empty black image as placeholder
 
         # Start conversation in a separate thread so ROS can keep spinning
         self._conversation_thread = threading.Thread(target=self.conversation, daemon=True)
@@ -143,25 +138,28 @@ class VLMServices(Node):
             If you need more information, ask a specific question. Do not be complacent and assume the user knows everything. 
             ENGAGE PROPERLY WITH THE USER.
                                    
+            THE FIRST THING YOU SHOULD DO IS TO ASK THE USER FOR THE INPUT PROMPT AND SET THE GOAL.
+            The input prompt should be a description of the object to look for in the environment.
+                                   
             If you want to take a picture, send a message that says "TAKE PICTURE" and the system will send a picture to you.
             IT IS VERY IMPORTANT THAT YOU ONLY ASK FOR A PICTURE WHEN YOU ARE READY TO ANALYZE IT.
             IT IS ALSO VERY IMPORTANT THAT THE REQUEST MESSAGE IS "TAKE PICTURE" EXACTLY LIKE THIS, 
             OTHERWISE THE SYSTEM WILL NOT WORK.
             
             IF you want to spawn a robot, reply with:
-            SPAWN ROBOT AT: <cell_number> <robot_name>
-            where <cell_number> is the number of the grid cell you want to spawn the robot in, and <robot_name> is the name of the robot you want to spawn.
-            The <cell_number> should be an integer, and the <robot_name> should be a string without spaces.
+            SPAWN ROBOT AT: <cell_number> <robot_name> <behavior>
+            where <cell_number> is the number of the grid cell you want to spawn the robot in, <robot_name> is the name of the robot you want to spawn, and <behavior> is either "monitor" or "search".
+            The <cell_number> should be an integer, the <robot_name> should be a string without spaces, and <behavior> should be either "monitor" or "search".
             For example, if you want to spawn a robot named "my_robot" in the grid cell number 5, you should send the message:
-            SPAWN ROBOT AT: 5 my_robot
+            SPAWN ROBOT AT: 5 my_robot monitor search
 
             Do NOT add any explanation, punctuation, or extra text before or after the command.
             If you do not follow this format exactly, the robot will NOT be spawned.
 
             BAD: Here is the command: SPAWN ROBOT AT: 5 my_robot
-            BAD: SPAWN ROBOT AT: 5 my_robot. (with a period)
-            GOOD: SPAWN ROBOT AT: 5 my_robot
-                                   
+            BAD: SPAWN ROBOT AT: 5 my_robot search. (with a period)
+            GOOD: SPAWN ROBOT AT: 5 my_robot search
+
             CHECK WITH THE USER ABOOUT THE GRID CELL NUMBER BEFORE SPAWNING THE ROBOT.
 
             If you want to set a goal for the robot to search for an object, you can do so by replying with:
@@ -184,16 +182,19 @@ class VLMServices(Node):
             DO NOT SPAWN ROBOTS IN OCCLUDED AREAS. DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION. YOU MAY ONLY SPAWN THREE ROBOTS.
             DO NOT ADD ANYTHING ELSE BEFORE 'FINAL_PROMPTS' AT THE START OF YOUR FINAL MESSAGE OR THE PROGRAM WILL NOT WORK.
             CHECK WITH THE USER ABOUT THE GRID CELL NUMBER BEFORE SPAWNING THE ROBOT.
-            DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED.
-
+            DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED. DO NOT SPAWN IN AN OCCLUDED AREA.
+            YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR.
             """
+            self.interface.add_message("system", reminders)
             assistant_msg = self.interface.get_response()
             print(f"\n🤖 GPT asks: {assistant_msg}")
 
             # Check if GPT finished
             if "FINAL_PROMPTS:" in assistant_msg.strip():
-                prompts_line = assistant_msg.strip()[len("FINAL_PROMPTS:"):].strip()
-                self.parse_prompt(prompts_line)
+                match = re.search(r"FINAL_PROMPTS:\s*(.*)", assistant_msg.strip(), re.DOTALL)
+                if match:
+                    prompts_line = match.group(1).strip()
+                    self.parse_prompt(prompts_line)
             if "STOP" in assistant_msg.strip():
                 self.get_logger().info("Conversation ended by GPT.")
                 break
@@ -201,44 +202,10 @@ class VLMServices(Node):
                 self.get_logger().info("GPT requested to take a picture.")
                 if self.latest_image is not None:
 
-                    image_file = self.upload_image_to_openai(self.latest_image)
+                    image_file = self.upload_image_to_openai(self.latest_image.copy())
                     self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
 
-                    grid_image = self.latest_image.copy()
-                    height, width, _ = grid_image.shape
-                    cell_width = width // self.num_cols
-                    cell_height = height // self.num_rows
-
-                    # draw grid and number the cells
-                    cell_number = 0
-                    num_cols = self.num_cols
-                    num_rows = self.num_rows
-                    for row in range(num_rows):
-                        for col in range(num_cols):
-                            x = int(col * cell_width)
-                            y = int(row * cell_height)
-                            top_left = (x, y)
-                            bottom_right = (min(x + cell_width, width - 1), min(y + cell_height, height - 1))
-                            cv2.rectangle(grid_image, top_left, bottom_right, (255, 0, 0), 1)
-                            # Calculate the center of the grid cell for numbering
-                            center_x = x + (min(cell_width, width - x) // 2)
-                            center_y = y + (min(cell_height, height - y) // 2)
-                            cv2.putText(
-                                grid_image,
-                                str(cell_number),
-                                (center_x - 10, center_y + 10),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                (0, 0, 255),
-                                1,
-                                cv2.LINE_AA
-                            )
-                            cell_number += 1
-
-                    cv2.imshow("Global Camera View with Grid", grid_image)
-                    cv2.waitKey(0)  # Needed to update the OpenCV window
-
-                    image_file = self.upload_image_to_openai(grid_image)
+                    image_file = self.upload_image_to_openai(self.latest_preprocessed.copy())
                     self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
 
                     # send the image to GPT
@@ -252,14 +219,15 @@ class VLMServices(Node):
                     
             if "SPAWN ROBOT AT:" in assistant_msg:
                 try:
-                    # Regex to find: SPAWN ROBOT AT: <cell_number> <robot_name>
-                    match = re.search(r"SPAWN ROBOT AT:\s*(\d+)\s+(\S+)", assistant_msg)
+                    # Regex to find: SPAWN ROBOT AT: <cell_number> <robot_name> <behavior>
+                    match = re.search(r"SPAWN ROBOT AT:\s*(\d+)\s+(\S+)\s+(\S+)", assistant_msg)
                     if match:
                         grid_num = int(match.group(1))
                         robot_name = match.group(2)
+                        behavior = match.group(3)
                         spawn_x, spawn_y = self.get_coords_from_grid(grid_num)
                         position = f"{spawn_x} {spawn_y} -0.0065"
-                        result = self.spawn_robot(robot_name, position)
+                        result = self.spawn_robot(robot_name, position, behavior)
                         if result is not None:
                             self.get_logger().info(f"Robot {robot_name} spawned at position {position}.")
                             self.interface.add_message("user", f"Robot {robot_name} has been spawned at position {position}.")
@@ -277,7 +245,6 @@ class VLMServices(Node):
             self.interface.add_message("user", user_reply)
         
         self.conversation_state = False
-
 
     def parse_prompt(self, final_prompts: str) -> None:
         """
@@ -301,6 +268,51 @@ class VLMServices(Node):
         # self.get_logger().info("Received image from global camera.")
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
 
+    def image_preprocess(self):
+        """
+        Preprocess the latest image for display.
+        """
+        if self.latest_image is not None and self.conversation_state:
+            grid_image = self.latest_image.copy()
+            height, width, _ = grid_image.shape
+            cell_width = width // self.num_cols
+            cell_height = height // self.num_rows
+
+            # draw grid and number the cells
+            cell_number = 0
+            num_cols = self.num_cols
+            num_rows = self.num_rows
+            for row in range(num_rows):
+                for col in range(num_cols):
+                    x = int(col * cell_width)
+                    y = int(row * cell_height)
+                    top_left = (x, y)
+                    bottom_right = (min(x + cell_width, width - 1), min(y + cell_height, height - 1))
+                    cv2.rectangle(grid_image, top_left, bottom_right, (255, 0, 0), 1)
+                    # Calculate the center of the grid cell for numbering
+                    center_x = x + (min(cell_width, width - x) // 2)
+                    center_y = y + (min(cell_height, height - y) // 2)
+                    cv2.putText(
+                        grid_image,
+                        str(cell_number),
+                        (center_x - 10, center_y + 10),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 0, 255),
+                        1,
+                        cv2.LINE_AA
+                    )
+                    cell_number += 1
+
+            self.latest_preprocessed = grid_image.copy()
+
+    def show_grid_image(self):
+        """
+        Display the grid image in a separate window.
+        """
+        if self.latest_preprocessed is not None:
+            cv2.imshow("Grid Image", self.latest_preprocessed)
+            cv2.waitKey(1)
 
     def upload_image_to_openai(self, image_cv2: np.ndarray):
         """
@@ -344,7 +356,7 @@ class VLMServices(Node):
 
         return spawn_x, spawn_y
 
-    def spawn_robot(self, robot_name: str, position: str):
+    def spawn_robot(self, robot_name: str, position: str, behavior: str):
         """
         Spawn a robot in the simulation using the SpawnNodeFromString service.
         """
@@ -353,7 +365,12 @@ class VLMServices(Node):
         self.req.data = data_string
         self.get_logger().info(f"Requesting spawn with data: {self.req}")
         self.future = self.spawn_service.call_async(self.req)
-        self.launch_ros2_file('llm_search', 'spawn_robot.py', {'robot_name': robot_name})
+        self.launch_ros2_file('llm_search', 
+                              'spawn_robot.py', 
+                              {'robot_name': robot_name, 
+                                'robot_speed': 0.0, 
+                                'robot_turn_speed': 0.7, 
+                                'behavior': behavior})
         self.future.add_done_callback(lambda fut: self.handle_spawn_response(fut, robot_name, position))
 
 
@@ -374,9 +391,13 @@ class VLMServices(Node):
 def main():
     rclpy.init()
     node = VLMServices()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        while rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.1)
+            node.show_grid_image()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

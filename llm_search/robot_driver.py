@@ -6,7 +6,7 @@ from sensor_msgs.msg import Imu
 HALF_DISTANCE_BETWEEN_WHEELS = 0.045
 WHEEL_RADIUS = 0.025
 
-class MyRobotDriver:
+class RobotDriver:
     def init(self, webots_node, properties):
         self.__robot = webots_node.robot
         self.__robot_name = self.__robot.getName()

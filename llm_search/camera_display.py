@@ -15,14 +15,16 @@ class CameraViewer(Node):
         self.bridge = CvBridge()
         self.declare_parameter('robot_name', 'my_robot')
         self.declare_parameter('has_depth', True)
+        self.declare_parameter('camera_topic', '/rgb_camera/image_color')
         self.robot_name = self.get_parameter('robot_name').get_parameter_value().string_value
         self.has_depth = self.get_parameter('has_depth').get_parameter_value().bool_value
+        self.camera_topic = self.get_parameter('camera_topic').get_parameter_value().string_value
         self.window_name = f"{self.robot_name} Camera View"
 
         # Subscribe to the camera topic
         self.cam_subscription = self.create_subscription(
             Image,
-            f'/{self.robot_name}/rgb_camera/image_color',
+            f'/{self.robot_name}{self.camera_topic}',
             self.image_callback,
             10
         )

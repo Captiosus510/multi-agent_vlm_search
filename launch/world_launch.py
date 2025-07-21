@@ -32,49 +32,6 @@ def generate_launch_description():
         ]
     )
 
-    
-    my_robot_driver = WebotsController(
-        robot_name='my_robot',
-        parameters=[
-            {'robot_description': robot_description_path},
-        ]
-    )
-
-  
-    my_robot_mapper = Node(
-        package='llm_search',
-        executable='local_mapper',
-        output='screen',
-        parameters=[
-            {'robot_name': 'my_robot'},
-            {'show_maps': False},  # Enable map display for the main robot
-        ]
-    )
-
-    
-    other_robot_driver = WebotsController(
-        robot_name='other_robot',
-        parameters=[
-            {'robot_description': robot_description_path},
-        ]
-    )
-
-    other_robot_mapper = Node(
-        package='llm_search',
-        executable='local_mapper',
-        output='screen',
-        parameters=[
-            {'robot_name': 'other_robot'},
-            {'show_maps': False},  # Disable map display for the other robot
-        ]
-    )
-
-    controller_node = Node(
-        package='llm_search',
-        executable='tb4_controller',
-        output='screen'
-    )
-
     camera_viewer_global = Node(
         package='llm_search',
         executable='camera_display',
@@ -82,24 +39,6 @@ def generate_launch_description():
         parameters=[
             {'robot_name': 'global_cam'},
             {'has_depth': False}  # Global camera does not have depth
-        ]
-    )
-
-    # Camera viewer node
-    camera_viewer_my_robot = Node(
-        package='llm_search',
-        executable='camera_display',
-        output='screen',
-        parameters=[
-            {'robot_name': 'my_robot'}
-        ]
-    )
-    camera_viewer_other_robot = Node(
-        package='llm_search',
-        executable='camera_display',
-        output='screen',
-        parameters=[
-            {'robot_name': 'other_robot'}
         ]
     )
 
@@ -118,12 +57,6 @@ def generate_launch_description():
         webots._supervisor,
         global_cam,
         camera_viewer_global,
-        # my_robot_driver, 
-        # my_robot_mapper,
-        # other_robot_driver,
-        # other_robot_mapper,
-        # camera_viewer_my_robot,
-        # camera_viewer_other_robot,
         # global_mapper,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore
