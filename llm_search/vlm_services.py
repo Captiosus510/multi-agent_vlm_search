@@ -20,69 +20,48 @@ import re
 
 
 class VLMServices(Node):
-    """
-    This will publish the goal for the robot to a topic and provide a double check service to confirm if the robot has found the object or not.
-    It will use the OpenAI API to analyze the image and confirm if the object is indeed.
-    """
-    system_prompt = """
-
-        You are part of a ROS2 robot framework to carry out multi-robot tasks. \
-        The multi-robot tasks are "monitoring environment" and "searching for an object" in an environment.
-
-        The idea is to have multiple robots either to surveil or explore an environment looking for objects asked by the user,
-        and report back to a central node. \
-        You are the one who will provide them with information about their tasks.
-        You will be interfacing with the user and potentially issue updates to the multi robot system as the search progresses.
-
-        You have these functionalities for now:
-
-        1. You will have a global bird's eye view camera that will provide you with images of the environment.
-            If you want to take a picture, send a message back while
-            that says "TAKE PICTURE" and the system will send a picture to you. 
-            IT IS VERY IMPORTANT THAT YOU ONLY ASK FOR A PICTURE WHEN YOU ARE READY TO ANALYZE IT.
-            IT IS ALSO VERY IMPORTANT THAT THE REQUEST MESSAGE IS "TAKE PICTURE" EXACTLY LIKE THIS, 
-            OTHERWISE THE SYSTEM WILL NOT WORK.
-        
-        2.  You will also be able to spawn robots in the environment. 
-            You can spawn robots at specific positions in the environment. 
-            When you take a picture, you will also be given a map with grid cells. These grid cells should be numbered in increasing order along the rows. 
-            More specifically, you should number the grid cells from left to right, starting from the top left corner of the image. 
-            The grid cells should be numbered starting from 0, and the numbering should increase by 1 for each cell. 
-
-            The robots will spawn in the middle of the grid cell.
-            
-            When you choose a number for a grid cell, you should use the following format:
-            SPAWN ROBOT AT: <cell_number> <robot_name> <behavior>
-            where <cell_number> is the number of the grid cell you want to spawn the robot in, and <robot_name> is the name of the robot you want to spawn. 
-            The <behavior> is either "monitor" or "search".
-            The <cell_number> should be an integer, and the <robot_name> should be a string without spaces. 
-            For example, if you want to spawn a robot named "my_robot" in the grid cell number 5 to monitor, you should send the message:
-            SPAWN ROBOT AT: 5 my_robot monitor
-
-            IT IS VERY IMPORTANT THAT YOU FOLLOW THIS FORMAT EXACTLY, OTHERWISE THE SYSTEM WILL NOT WORK. 
-            
-            If you do not follow this format, the robot will NOT be spawned. 
-
-            DO NOT SPAWN A ROBOT IN AN OCCLUDED AREA.
-        
-        3. The user may want to set a goal for the robot to look for while monitoring or for searching.
-            You will be given a prompt from the user that describes an object to look for.
-            Simply take this prompt and simplify to a few words that describe the object.
-
-            The exact format is:
-            FINAL_PROMPTS: <comma-separated list of prompts>
-            where <comma-separated list of prompts> is a list of up to 3 prompts that
-            describe the object to look for. The prompts should be related to the object and should help
-            the robot to find the object in the environment.
-
-            For example, input is "a silver cat next to my sofa", you could return a list of
-            silver cat, cat next to sofa, cat on wooden floor
-
-            MAKE SURE IT's A COMMA SEPARATED LIST OF PROMPTS. YOU MAY RETURN UP TO 3 PROMPTS.
-            The robot will use these prompts to search for the object in the environment.
-
-        """
     
+    system_prompt = """
+You are an AI assistant that helps users use a multi-robot search and monitoring system in a simulation environment.
+Your task is to interactively refine the user's input prompt and provide structured output for spawning robots in the simulation.
+
+You communicate through structured responses that include both text and function calls. Your responses should always include:
+- text: Your conversational response to the user
+- Optional function calls: take_picture, set_goal, spawn_robot, or stop
+
+Each interaction should follow these general steps:
+
+1. Ask the user for the object they want the robot to search or monitor for. Simplify these into a list of 3 simple prompts.
+   Also make sure the user specifies the behavior of the robot (monitor or search).
+   Example: "a telephone on the floor next to a cup" → "telephone, telephone next to a cup, cup"
+
+2. Use the take_picture function to see the environment with a grid overlay. The grid will be numbered 0-149.
+   You can use this image to help you understand the environment and choose spawn locations.
+
+3. Choose suitable grid cells to spawn robots using the spawn_robot function. Confer with the user
+   to determine if the chosen cells are good for spawning the robot. DO NOT CHOOSE OCCLUDED AREAS. 
+   DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION. 
+
+4. Use set_goal to set the search prompts for all robots.
+
+5. Use stop when the conversation is complete. ONLY USE STOP WHEN THE USER SAYS THEY ARE DONE.
+
+Function usage:
+- take_picture: No parameters needed
+- set_goal: Requires prompts (string) - comma-separated list
+- spawn_robot: Requires grid_cell (int 0-149), robot_name (string), behavior ("MONITOR" or "SEARCH")
+- stop: No parameters needed
+
+Remember:
+- DO NOT SPAWN ROBOTS IN OCCLUDED AREAS
+- DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION  
+- YOU MAY ONLY SPAWN THREE ROBOTS
+- CHECK WITH THE USER ABOUT THE GRID CELL NUMBER BEFORE SPAWNING
+- DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
+- YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
+
+Always provide both text responses for conversation and appropriate function calls when needed.
+"""
     def __init__(self):
         super().__init__('vlm_services')
         self.interface = OpenAIInterface(self.system_prompt, model="gpt-4o", max_messages=100)
@@ -126,125 +105,83 @@ class VLMServices(Node):
             "top_left": (-6.15, 4.77)
         }
 
+        self.spawned_robots = set()  # Keep track of spawned robots to avoid duplicates
+
     def conversation(self):
         """
-        Interactive conversation with GPT to refine the prompt.
+        Interactive conversation with GPT using structured output.
         """
         self.conversation_state = True
-        # Start conversation with system message explaining GPT should ask questions if it needs more info
-        self.interface.add_message("system", """
-                                   
-            You can ask questions to clarify the user's intent and refine the the location to spawn the robot.
-            If you need more information, ask a specific question. Do not be complacent and assume the user knows everything. 
-            ENGAGE PROPERLY WITH THE USER.
-                                   
-            THE FIRST THING YOU SHOULD DO IS TO ASK THE USER FOR THE INPUT PROMPT AND SET THE GOAL.
-            The input prompt should be a description of the object to look for in the environment.
-                                   
-            If you want to take a picture, send a message that says "TAKE PICTURE" and the system will send a picture to you.
-            IT IS VERY IMPORTANT THAT YOU ONLY ASK FOR A PICTURE WHEN YOU ARE READY TO ANALYZE IT.
-            IT IS ALSO VERY IMPORTANT THAT THE REQUEST MESSAGE IS "TAKE PICTURE" EXACTLY LIKE THIS, 
-            OTHERWISE THE SYSTEM WILL NOT WORK.
-            
-            IF you want to spawn a robot, reply with:
-            SPAWN ROBOT AT: <cell_number> <robot_name> <behavior>
-            where <cell_number> is the number of the grid cell you want to spawn the robot in, <robot_name> is the name of the robot you want to spawn, and <behavior> is either "monitor" or "search".
-            The <cell_number> should be an integer, the <robot_name> should be a string without spaces, and <behavior> should be either "monitor" or "search".
-            For example, if you want to spawn a robot named "my_robot" in the grid cell number 5, you should send the message:
-            SPAWN ROBOT AT: 5 my_robot monitor search
-
-            Do NOT add any explanation, punctuation, or extra text before or after the command.
-            If you do not follow this format exactly, the robot will NOT be spawned.
-
-            BAD: Here is the command: SPAWN ROBOT AT: 5 my_robot
-            BAD: SPAWN ROBOT AT: 5 my_robot search. (with a period)
-            GOOD: SPAWN ROBOT AT: 5 my_robot search
-
-            CHECK WITH THE USER ABOOUT THE GRID CELL NUMBER BEFORE SPAWNING THE ROBOT.
-
-            If you want to set a goal for the robot to search for an object, you can do so by replying with:
-            FINAL_PROMPTS: <comma-separated list of prompts>
-            where <comma-separated list of prompts> is a list of up to 3 prompts that
-            describe the object to look for. The prompts should be related to the object and should help
-            the robot to find the object in the environment.
-            For example, if the user inputs "a silver cat at home", you could return a list of
-            silver cat, cat at home, cat on wooden floor
-                                   
-            DO NOT ADD ANYTHING ELSE BEFORE 'FINAL_PROMPTS' AT THE START OF YOUR FINAL MESSAGE OR THE PROGRAM WILL NOT WORK.
-                                   
-            You can also converse with the user and take pictures from the global camera and analyze them. If at any point you
-            or the user wants to stop the conversation, just say "STOP" and the conversation will end. 
-        """)
         self.interface.add_message("user", self.input_prompt)
 
         while True:
             reminders = """
             DO NOT SPAWN ROBOTS IN OCCLUDED AREAS. DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION. YOU MAY ONLY SPAWN THREE ROBOTS.
-            DO NOT ADD ANYTHING ELSE BEFORE 'FINAL_PROMPTS' AT THE START OF YOUR FINAL MESSAGE OR THE PROGRAM WILL NOT WORK.
             CHECK WITH THE USER ABOUT THE GRID CELL NUMBER BEFORE SPAWNING THE ROBOT.
             DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED. DO NOT SPAWN IN AN OCCLUDED AREA.
             YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR.
             """
             self.interface.add_message("system", reminders)
-            assistant_msg = self.interface.get_response()
-            print(f"\n🤖 GPT asks: {assistant_msg}")
-
-            # Check if GPT finished
-            if "FINAL_PROMPTS:" in assistant_msg.strip():
-                match = re.search(r"FINAL_PROMPTS:\s*(.*)", assistant_msg.strip(), re.DOTALL)
-                if match:
-                    prompts_line = match.group(1).strip()
-                    self.parse_prompt(prompts_line)
-            if "STOP" in assistant_msg.strip():
+            
+            # Get structured response
+            response = self.interface.get_response()
+            
+            # Display the text response
+            if response and hasattr(response, 'text') and response.text:
+                print(f"\n🤖 GPT says: {response.text}")
+            
+            # Handle function calls
+            if response and hasattr(response, 'take_picture') and response.take_picture:
+                self.handle_take_picture()
+                continue
+            elif response and hasattr(response, 'set_goal') and response.set_goal:
+                self.handle_set_goal(response.set_goal.prompts)
+                continue
+            elif response and hasattr(response, 'spawn_robot') and response.spawn_robot:
+                self.handle_spawn_robot(
+                    response.spawn_robot.grid_cell,
+                    response.spawn_robot.robot_name,
+                    response.spawn_robot.behavior.value
+                )
+                continue
+            elif response and hasattr(response, 'stop') and response.stop:
                 self.get_logger().info("Conversation ended by GPT.")
                 break
-            if "TAKE PICTURE" in assistant_msg.strip():
-                self.get_logger().info("GPT requested to take a picture.")
-                if self.latest_image is not None:
-
-                    image_file = self.upload_image_to_openai(self.latest_image.copy())
-                    self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
-
-                    image_file = self.upload_image_to_openai(self.latest_preprocessed.copy())
-                    self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
-
-                    # send the image to GPT
-
-                    self.interface.add_message("user", "Use these images to answer the previous question. You have a grid image as well as the original image." \
-                                               "The grid image has a grid overlay for your use.")
-                    continue  # Wait for GPT to process the images
                 
-                else:
-                    self.interface.add_message("user", "No image available at the moment.")
-                    
-            if "SPAWN ROBOT AT:" in assistant_msg:
-                try:
-                    # Regex to find: SPAWN ROBOT AT: <cell_number> <robot_name> <behavior>
-                    match = re.search(r"SPAWN ROBOT AT:\s*(\d+)\s+(\S+)\s+(\S+)", assistant_msg)
-                    if match:
-                        grid_num = int(match.group(1))
-                        robot_name = match.group(2)
-                        behavior = match.group(3)
-                        spawn_x, spawn_y = self.get_coords_from_grid(grid_num)
-                        position = f"{spawn_x} {spawn_y} -0.0065"
-                        result = self.spawn_robot(robot_name, position, behavior)
-                        if result is not None:
-                            self.get_logger().info(f"Robot {robot_name} spawned at position {position}.")
-                            self.interface.add_message("user", f"Robot {robot_name} has been spawned at position {position}.")
-                        else:
-                            self.get_logger().error("Failed to spawn robot.")
-                            self.interface.add_message("user", "Error in spawning robot. Please check the format and try again.")
-                    else:
-                        raise ValueError("Could not parse SPAWN ROBOT AT command.")
-                except Exception as e:
-                    self.get_logger().error(f"Error in spawning robot: {e}")
-                    self.interface.add_message("user", "Error in spawning robot. Please check the format and try again.")
-            
-                
+            # If no function call, get user input
             user_reply = input("\n✏️ Your answer: ")
             self.interface.add_message("user", user_reply)
         
         self.conversation_state = False
+
+    def handle_take_picture(self):
+        """Handle take_picture function call"""
+        self.get_logger().info("GPT requested to take a picture.")
+        if self.latest_image is not None:
+            image_file = self.upload_image_to_openai(self.latest_image.copy())
+            self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
+
+            image_file = self.upload_image_to_openai(self.latest_preprocessed.copy())
+            self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
+
+            self.interface.add_message("user", "Use these images to answer the previous question. You have a grid image as well as the original image. The grid image has a grid overlay for your use.")
+        else:
+            self.interface.add_message("user", "No image available at the moment.")
+
+    def handle_set_goal(self, prompts):
+        """Handle set_goal function call"""
+        self.parse_prompt(prompts)
+        self.interface.add_message("user", f"Goal set successfully: {prompts}")
+
+    def handle_spawn_robot(self, grid_cell, robot_name, behavior):
+        """Handle spawn_robot function call and check if robot has already been spawned"""
+        if robot_name in self.spawned_robots:
+            self.interface.add_message("user", f"ERROR: Robot {robot_name} has already been spawned!")
+            return
+        spawn_x, spawn_y = self.get_coords_from_grid(grid_cell)
+        position = f"{spawn_x} {spawn_y} -0.0065"
+        self.spawn_robot(robot_name, position, behavior)
+        self.spawned_robots.add(robot_name)
 
     def parse_prompt(self, final_prompts: str) -> None:
         """
@@ -360,26 +297,34 @@ class VLMServices(Node):
         """
         Spawn a robot in the simulation using the SpawnNodeFromString service.
         """
-        self.get_logger().info(f"Spawning robot {robot_name} at position {position}...")
-        data_string = "Turtlebot4 {name \"" + robot_name + "\" translation " + position + " controller \"<extern>\"}"
-        self.req.data = data_string
-        self.get_logger().info(f"Requesting spawn with data: {self.req}")
-        self.future = self.spawn_service.call_async(self.req)
-        self.launch_ros2_file('llm_search', 
-                              'spawn_robot.py', 
-                              {'robot_name': robot_name, 
-                                'robot_speed': 0.0, 
-                                'robot_turn_speed': 0.7, 
-                                'behavior': behavior})
-        self.future.add_done_callback(lambda fut: self.handle_spawn_response(fut, robot_name, position))
+        try:
+            self.get_logger().info(f"Spawning robot {robot_name} at position {position}...")
+            data_string = "Turtlebot4 {name \"" + robot_name + "\" translation " + position + " controller \"<extern>\"}"
+            self.req.data = data_string
+            self.get_logger().info(f"Requesting spawn with data: {self.req}")
+            self.future = self.spawn_service.call_async(self.req)
+            self.launch_ros2_file('llm_search', 
+                                'spawn_robot.py', 
+                                {'robot_name': robot_name, 
+                                    'robot_speed': 0.0, 
+                                    'robot_turn_speed': 0.7, 
+                                    'behavior': behavior})
+            self.interface.add_message("user", f"Robot {robot_name} has been spawned at position {position}.")
+        except Exception as e:
+            self.get_logger().error(f"Failed to spawn robot {robot_name} at position {position}: {e}")
+            self.interface.add_message("user", f"Error in spawning robot {robot_name}. Please check the format and try again.")
+            return
 
 
     def handle_spawn_response(self, future, robot_name, position):
-        try:
-            result = future.result()
+        result = future.result
+        if result.success:
             self.get_logger().info(f"Spawn service response: {result}")
-        except Exception as e:
-            self.get_logger().error(f"Error in spawning robot: {e}")
+            self.interface.add_message("user", f"Robot {robot_name} has been spawned at position {position}.")
+        else:
+            self.get_logger().error(f"Failed to spawn robot {robot_name}. Response: {result}")
+            self.interface.add_message("user", f"Error in spawning robot {robot_name}. Please check the format and try again.")
+        
             
     def launch_ros2_file(self, package, launch_file, args=None):
         cmd = ['ros2', 'launch', package, launch_file]
