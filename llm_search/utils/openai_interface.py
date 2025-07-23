@@ -73,6 +73,8 @@ class OpenAIInterface:
         
         parsed_output = response.output_parsed
 
+        if parsed_output is None:
+            raise ValueError("No valid output received from the model.")
         self.add_message("assistant", parsed_output.text) # type: ignore
         return parsed_output
     

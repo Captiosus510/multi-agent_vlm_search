@@ -45,6 +45,7 @@ setup(
             'local_mapper = llm_search.local_mapper:main',
             'global_map_merger = llm_search.global_mapper:main',
             'detector = llm_search.detector:main',
+            'global_cams = llm_search.global_cams:main',
         ],
     },
 )

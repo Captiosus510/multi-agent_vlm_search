@@ -37,6 +37,7 @@ class ObjectDetector(Node):
         
         # set up publisher for detection results
         self.detector_publisher = self.create_publisher(Image, f'/{self.robot_name}/detector/image', 10)
+        self.found_objects_publisher = self.create_publisher(Image, f'/{self.robot_name}/detector/found', 10)
     
     def goal_callback(self, msg):
         if self.goal is None or self.goal != msg.data:
@@ -57,6 +58,9 @@ class ObjectDetector(Node):
             # Set classes for YOLO model
             self.yolo_model.set_classes(class_list)
             boxes, scores, class_ids, masks = self.yolo_model.detect(cv_image)
+
+            # create a flag if any of the confidences are above threshold
+            found_objects = any(score > 0.5 for score in scores)
 
             # create a copy for mask overlay
             overlay = cv_image.copy()
@@ -92,9 +96,28 @@ class ObjectDetector(Node):
             # Publish the processed image
             output_msg = self.bridge.cv2_to_imgmsg(final_image, encoding='bgr8')
             output_msg.header.stamp = self.get_clock().now().to_msg()
-            output_msg.header.frame_id = f'{self.robot_name}_camera_frame'
+            output_msg.header.frame_id = f'{self.robot_name}'
             self.detector_publisher.publish(output_msg)
             self.get_logger().info('Published detection image')
+
+            # Only publish found objects image for a few frames after initial detection, then space out uploads
+            if not hasattr(self, 'found_counter'):
+                self.found_counter = 0
+                self.last_found_frame = 0
+                self.found_interval = 30  # frames to wait between uploads after initial burst
+                self.initial_burst = 5    # number of frames to upload immediately after found
+
+            if found_objects:
+                if self.found_counter < self.initial_burst or \
+                   (self.found_counter >= self.initial_burst and (self.found_counter - self.initial_burst) % self.found_interval == 0):
+                    found_objects_msg = self.bridge.cv2_to_imgmsg(final_image, encoding='bgr8')
+                    found_objects_msg.header.stamp = self.get_clock().now().to_msg()
+                    found_objects_msg.header.frame_id = f'{self.robot_name}_camera_frame'
+                    self.found_objects_publisher.publish(found_objects_msg)
+                    self.get_logger().info('Published found objects image')
+                self.found_counter += 1
+            else:
+                self.found_counter = 0  # Reset counter when no objects found
 
             # Display the image with detections
             # cv2.imshow(self.robot_name + ' Camera View', cv_image)

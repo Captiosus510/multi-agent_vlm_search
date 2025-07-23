@@ -1,11 +1,11 @@
+from urllib import response
 import rclpy
 from rclpy.node import Node
 import time
-import threading
+import threading, queue, sys, select
 from openai import OpenAI
 import json, cv2
 from llm_search.utils.openai_interface import OpenAIInterface
-# from llm_search_interfaces.srv import Analysis
 import cv2
 from cv_bridge import CvBridge
 from std_msgs.msg import String
@@ -16,35 +16,46 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from webots_ros2_msgs.srv import SpawnNodeFromString
 import re
-# from ament_index_python.packages import get_package_share_directory
+
+from ultralytics import SAM
 
 
 class VLMServices(Node):
     
     system_prompt = """
-You are given a Bird's Eye View of the scene. The environment can be deployed with multiple TurtleBots.
-
-You are a centralised scene planner. 
+You are given a Bird's Eye View of the scene. The environment can be deployed with multiple TurtleBots. You are a centralised scene planner.\
 Semantically analyze the Bird's Eye View of the scene for environment space, objects, and their relationships to provide structured responses.
 
-You can perform two tasks: multi-robot search and monitoring in the given scene.
-For each task, you interactively refine the user's input prompt and provide structured output to meaningfully allocate robots in the scene.
+You can perform two tasks with TurtleBots in the scene: multi-robot search and multi-robot monitoring in the given scene. \
+First ask/Analyse what behavior the user wants (monitor or search).For each task, \
+you interactively refine the user's input prompt and provide structured output to meaningfully allocate robots in the scene.
 
-Each task should follow these general steps:
-Ask the user for the object they want the robot to search or monitor for. Simplify these into a list of 3 simple prompts.
-   Also make sure the user specifies the behavior of the robot (monitor or search).
-   Example: "a telephone on the floor next to a cup" → "telephone, telephone next to a cup, cup"
 
-2. Use the take_picture function to see the environment with a grid overlay. The grid will be numbered 0-149.
-   You can use this image to help you understand the environment and choose spawn locations.
+Each task should follow this general step:
+1. Use the take_picture function to see the environment with a grid overlay. The grids are numbered. \
+   Based on the user input, analyze this image to understand the scene layout and objects. \
+   ROBOT ALLOCATION: Identify feasible and meaningful locations(grids) to spawn robots in the scene. \
+   Reason how many grids are allocated and why those chosen grid cells are suitable for the task. \
+   THE MOBILE ROBOTS CAN ONLY BE SPAWNED ON THE FLOOR. \
+   MORE THAN ONE ROBOT CANNOT BE SPAWNED IN THE SAME GRID. 
 
-3. Choose suitable grid cells to spawn robots using the spawn_robot function. Confer with the user
-   to determine if the chosen cells are good for spawning the robot. DO NOT CHOOSE OCCLUDED AREAS. 
-   DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION. 
+2. Confirm with the user about the grid cell numbers you have chosen for spawning robots. \
+   Use spawn_robot function to spawn robots. 
 
-4. Use set_goal to set the search prompts for all robots.
+For multi-robot monitoring:
+1. Monitoring Goal: Ask the user if they are monitoring for anything particular, say an object or a person if not mentioned. \
+    Generate the monitoring goal into a list of 3 simple prompts.\
+    Do not output prompts that are too general or indicate a general space. 
+    GOOD: "I want to monitor near door for a package" → "Box, Package, carboard Box"
+    Finally, Use set_goal to set the search prompts for all robots.
 
-5. Use stop when the conversation is complete. ONLY USE STOP WHEN THE USER SAYS THEY ARE DONE.
+2. If one of the robots find the goal object, initiate a conversation with the user. You will be given an image of the monitoring object.
+   Analyze the image and report the semantic location and the description of the object found (no coordinates).
+
+3. Ask the user if they are satisfied with the result. \
+    If they are, you will end the conversation. \
+    Use stop when the conversation is complete. \
+    ONLY USE STOP WHEN THE USER SAYS THEY ARE DONE.
 
 Function usage:
 - take_picture: No parameters needed
@@ -53,10 +64,8 @@ Function usage:
 - stop: No parameters needed
 
 Remember:
-- DO NOT SPAWN ROBOTS IN OCCLUDED AREAS
-- DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION  
-- YOU MAY ONLY SPAWN THREE ROBOTS
-- CHECK WITH THE USER ABOUT THE GRID CELL NUMBER BEFORE SPAWNING
+- DO NOT SPAWN ROBOTS IN UNFEASIBLE GRIDS (e.g., walls, tables).
+- CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE SPAWNING
 - DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
 - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
 
@@ -88,14 +97,15 @@ Always provide both text responses for conversation and appropriate function cal
         self.image_preprocess_callback = self.create_timer(0.1, self.image_preprocess)
         self.latest_preprocessed = np.zeros((1, 1, 3), dtype=np.uint8)  # empty black image as placeholder
 
+        self.search_result_queue = queue.Queue()
+        self.interface_lock = threading.Lock()
+
         # Start conversation in a separate thread so ROS can keep spinning
         self._conversation_thread = threading.Thread(target=self.conversation, daemon=True)
         self._conversation_thread.start()
 
         self.spawn_service = self.create_client(SpawnNodeFromString, '/Ros2Supervisor/spawn_node_from_string')
         self.req = SpawnNodeFromString.Request()
-
-        # self.grid_size = 75  # size of each grid box in pixels
 
         self.num_cols = 15
         self.num_rows = 10
@@ -106,25 +116,32 @@ Always provide both text responses for conversation and appropriate function cal
         }
 
         self.spawned_robots = set()  # Keep track of spawned robots to avoid duplicates
+        self.detection_subscriptions = list()  # List to keep track of detection subscriptions
+
+        self.robot_names_publisher = self.create_publisher(String, 'robot_names', 10)
+
+        self.segmentation_model = SAM("sam2.1_b.pt")
 
     def conversation(self):
         """
         Interactive conversation with GPT using structured output.
         """
         self.conversation_state = True
-        self.interface.add_message("user", self.input_prompt)
+        with self.interface_lock:
+            self.interface.add_message("user", self.input_prompt)
 
         while True:
             reminders = """
-            DO NOT SPAWN ROBOTS IN OCCLUDED AREAS. DO NOT SPAWN MORE THAN ONE ROBOT IN THE SAME LOCATION. YOU MAY ONLY SPAWN THREE ROBOTS.
-            CHECK WITH THE USER ABOUT THE GRID CELL NUMBER BEFORE SPAWNING THE ROBOT.
-            DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED. DO NOT SPAWN IN AN OCCLUDED AREA.
-            YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR.
+            - DO NOT SPAWN ROBOTS IN UNFEASIBLE GRIDS (e.g., walls, tables).
+            - CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE SPAWNING
+            - DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
+            - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
             """
-            self.interface.add_message("system", reminders)
-            
-            # Get structured response
-            response = self.interface.get_response()
+            with self.interface_lock:
+                self.interface.add_message("system", reminders)
+                
+                # Get structured response
+                response = self.interface.get_response()
             
             # Display the text response
             if response and hasattr(response, 'text') and response.text:
@@ -135,12 +152,12 @@ Always provide both text responses for conversation and appropriate function cal
                 self.handle_take_picture()
                 continue
             elif response and hasattr(response, 'set_goal') and response.set_goal:
-                self.handle_set_goal(response.set_goal.prompts)
+                self.parse_prompt(response.set_goal.prompts)
                 continue
             elif response and hasattr(response, 'spawn_robot') and response.spawn_robot:
-                self.handle_spawn_robot(
-                    response.spawn_robot.grid_cell,
+                self.spawn_robot(
                     response.spawn_robot.robot_name,
+                    response.spawn_robot.grid_cell,
                     response.spawn_robot.behavior.value
                 )
                 continue
@@ -149,39 +166,74 @@ Always provide both text responses for conversation and appropriate function cal
                 break
                 
             # If no function call, get user input
-            user_reply = input("\n✏️ Your answer: ")
-            self.interface.add_message("user", user_reply)
-        
+            user_reply = self.user_input_with_interrupt()
+            with self.interface_lock:
+                self.interface.add_message("user", user_reply)
+
         self.conversation_state = False
+
+    def user_input_with_interrupt(self):
+        """
+        Get user input with a timeout to allow for periodic checks.
+        """
+        print(f"\n✏️ Your answer (type 'exit' to stop): ", end='', flush=True)
+        enable_interrupt = True
+        user_input = ""
+        while True:
+            # handle interrupt (queue being filled with search results)
+            if not self.search_result_queue.empty() and enable_interrupt: 
+                self.process_search_results()
+                response = self.interface.get_response()  # Get the latest response to update the conversation
+                # Display the text response
+                if response and hasattr(response, 'text') and response.text:
+                    print(f"\n🤖 GPT says: {response.text}")
+                print(f"\n✏️ Your answer (type 'exit' to stop): ", end='', flush=True)
+                enable_interrupt = False
+            
+            # Check if stdin has data available (non-blocking)
+            if select.select([sys.stdin], [], [], 0.1)[0]:
+                line = sys.stdin.readline()
+                if line:
+                    user_input = line.strip()
+                    break
+            
+            # Small delay to prevent busy waiting
+            time.sleep(0.1)
+        
+        return user_input
+
+    def process_search_results(self):
+        """Process any pending search results from the queue"""
+        while not self.search_result_queue.empty():
+            try:
+                cv_image = self.search_result_queue.get_nowait()
+                print(f"\n🔍 SEARCH UPDATE: Object detected by robot!")
+                
+                # Upload image and add to conversation
+                image_file = self.upload_image_to_openai(cv_image)
+                with self.interface_lock:
+                    self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
+                    self.interface.add_message("user", "Image of potential goal object found by robot. Analyze this image and provide confirmation and semantic location of the object.")
+            except queue.Empty:
+                break
+            except Exception as e:
+                self.get_logger().error(f"Error processing search result: {e}")
 
     def handle_take_picture(self):
         """Handle take_picture function call"""
         self.get_logger().info("GPT requested to take a picture.")
-        if self.latest_image is not None:
-            image_file = self.upload_image_to_openai(self.latest_image.copy())
-            self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
+        with self.interface_lock:
+            if self.latest_image is not None:
+                image_file = self.upload_image_to_openai(self.latest_image.copy())
+                self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
 
-            image_file = self.upload_image_to_openai(self.latest_preprocessed.copy())
-            self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
+                image_file = self.upload_image_to_openai(self.latest_preprocessed.copy())
+                self.interface.add_message("user", [{"type": "input_image", "file_id": image_file.id}])
 
-            self.interface.add_message("user", "Use these images to answer the previous question. You have a grid image as well as the original image. The grid image has a grid overlay for your use.")
-        else:
-            self.interface.add_message("user", "No image available at the moment.")
+                self.interface.add_message("user", "Use these images to answer the previous question. You have a grid image as well as the original image. The grid image has a grid overlay for your use.")
+            else:
+                self.interface.add_message("user", "No image available at the moment.")
 
-    def handle_set_goal(self, prompts):
-        """Handle set_goal function call"""
-        self.parse_prompt(prompts)
-        self.interface.add_message("user", f"Goal set successfully: {prompts}")
-
-    def handle_spawn_robot(self, grid_cell, robot_name, behavior):
-        """Handle spawn_robot function call and check if robot has already been spawned"""
-        if robot_name in self.spawned_robots:
-            self.interface.add_message("user", f"ERROR: Robot {robot_name} has already been spawned!")
-            return
-        spawn_x, spawn_y = self.get_coords_from_grid(grid_cell)
-        position = f"{spawn_x} {spawn_y} -0.0065"
-        self.spawn_robot(robot_name, position, behavior)
-        self.spawned_robots.add(robot_name)
 
     def parse_prompt(self, final_prompts: str) -> None:
         """
@@ -192,18 +244,33 @@ Always provide both text responses for conversation and appropriate function cal
         self.parsed_prompt = final_prompts
         self.analyzed_prompt = True
         self.get_logger().info(f"Final parsed prompt: {self.parsed_prompt}")
+        with self.interface_lock:
+            self.interface.add_message("user", f"Goal set successfully: {self.parsed_prompt}")
 
     
     def timer_callback(self):
         if self.parsed_prompt is not None:
             self.goal_publisher.publish(String(data=self.parsed_prompt))
-    
+        if self.robot_names_publisher.get_subscription_count() > 0:
+            self.robot_names_publisher.publish(String(data=','.join(list(self.spawned_robots))))
+
     def image_callback(self, msg: Image):
         """
         Callback to handle images from the global camera.
         """
         # self.get_logger().info("Received image from global camera.")
         self.latest_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+    
+    def found_objects_callback(self, msg: Image):
+        """
+        Callback to handle found objects from the detector.
+        """
+        try:
+            # Convert ROS Image message to OpenCV image (BGR by default)
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            self.search_result_queue.put(cv_image)
+        except Exception as e:
+            self.get_logger().error(f"CV Bridge error in found objects callback: {e}")
 
     def image_preprocess(self):
         """
@@ -211,6 +278,8 @@ Always provide both text responses for conversation and appropriate function cal
         """
         if self.latest_image is not None and self.conversation_state:
             grid_image = self.latest_image.copy()
+            
+            # Create a grid overlay on the image
             height, width, _ = grid_image.shape
             cell_width = width // self.num_cols
             cell_height = height // self.num_rows
@@ -293,15 +362,20 @@ Always provide both text responses for conversation and appropriate function cal
 
         return spawn_x, spawn_y
 
-    def spawn_robot(self, robot_name: str, position: str, behavior: str):
+    def spawn_robot(self, robot_name: str, grid_cell: int, behavior: str):
         """
         Spawn a robot in the simulation using the SpawnNodeFromString service.
         """
+        if robot_name in self.spawned_robots:
+            with self.interface_lock:
+                self.interface.add_message("user", f"ERROR: Robot {robot_name} has already been spawned!")
+            return
+        spawn_x, spawn_y = self.get_coords_from_grid(grid_cell)
+        position = f"{spawn_x} {spawn_y} -0.0065"
+        
         try:
-            self.get_logger().info(f"Spawning robot {robot_name} at position {position}...")
             data_string = "Turtlebot4 {name \"" + robot_name + "\" translation " + position + " controller \"<extern>\"}"
             self.req.data = data_string
-            self.get_logger().info(f"Requesting spawn with data: {self.req}")
             self.future = self.spawn_service.call_async(self.req)
             self.launch_ros2_file('llm_search', 
                                 'spawn_robot.py', 
@@ -309,10 +383,21 @@ Always provide both text responses for conversation and appropriate function cal
                                     'robot_speed': 0.0, 
                                     'robot_turn_speed': 0.7, 
                                     'behavior': behavior})
-            self.interface.add_message("user", f"Robot {robot_name} has been spawned at position {position}.")
+            # Add the robot to the list of spawned robots and also subscribe to its detection topic
+            self.spawned_robots.add(robot_name)
+            self.detection_subscriptions.append(self.create_subscription(
+                Image,
+                f'/{robot_name}/detector/found',
+                self.found_objects_callback,
+                10
+            ))
+            with self.interface_lock:
+                self.interface.add_message("user", f"Robot {robot_name} has been spawned at position {position}.")
+            self.get_logger().info(f"Robot {robot_name} spawned at position {position} with behavior {behavior}.")
         except Exception as e:
             self.get_logger().error(f"Failed to spawn robot {robot_name} at position {position}: {e}")
-            self.interface.add_message("user", f"Error in spawning robot {robot_name}. Please check the format and try again.")
+            with self.interface_lock:
+                self.interface.add_message("user", f"Error in spawning robot {robot_name}. Please check the format and try again.")
             return
 
 
