@@ -1,0 +1,9 @@
+{
+    "digital_twin_name": "pib upper body",
+    "digital_twin_version": "0.1.0",
+    "export_date": "2024-07-15",
+    "target_software": "Webots",
+    "description": "The entire upper body of pib.",
+    "onshape_link": "https://cad.onshape.com/documents/775cd57fa655e34e0a8b6d93/w/fff5b717a5ab3fbb93f6263c/e/cd925de3e56c813aa10075ae",
+    "pib_version": "pib V2024"
+}
