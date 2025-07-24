@@ -20,6 +20,9 @@ class SpawnRobotCall(BaseModel):
     robot_name: str
     behavior: BehaviorType
 
+class ShowGridCall(BaseModel):
+    name: str = "show_grid"
+
 class StopCall(BaseModel):
     name: str = "stop"
 
@@ -28,7 +31,9 @@ class ChainOfThoughtStep(BaseModel):
 
 class Conversation(BaseModel):
     text: str  # The text of the conversation step
+    chain_of_thought: List[ChainOfThoughtStep]
     take_picture: Optional[TakePictureCall] = None
+    show_grid: Optional[ShowGridCall] = None
     set_goal: Optional[SetGoalCall] = None  
     spawn_robot: Optional[SpawnRobotCall] = None
     stop: Optional[StopCall] = None

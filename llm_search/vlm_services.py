@@ -39,7 +39,8 @@ Each task should follow this general step:
    THE MOBILE ROBOTS CAN ONLY BE SPAWNED ON THE FLOOR. \
    MORE THAN ONE ROBOT CANNOT BE SPAWNED IN THE SAME GRID. 
 
-2. Confirm with the user about the grid cell numbers you have chosen for spawning robots. \
+2. Confirm with the user about the grid cell numbers you have chosen for spawning robots. 
+Use show_grid to show the grid image with the latest preprocessed image. YOU MUST SHOW THE GRID TO CONFIRM THE GRID NUMBERS WITH THE USER. \
    Use spawn_robot function to spawn robots. 
 
 For multi-robot monitoring:
@@ -122,6 +123,8 @@ Always provide both text responses for conversation and appropriate function cal
 
         self.segmentation_model = SAM("sam2.1_b.pt")
 
+        self.show_grid = False  # Flag to control grid display
+
     def conversation(self):
         """
         Interactive conversation with GPT using structured output.
@@ -142,7 +145,11 @@ Always provide both text responses for conversation and appropriate function cal
                 
                 # Get structured response
                 response = self.interface.get_response()
-            
+            # Display thinking
+            if response and hasattr(response, 'chain_of_thought') and response.chain_of_thought:
+                print(f"\n🤔 GPT thoughts:")
+                for step in response.chain_of_thought:
+                    print(f"  - {step.reasoning}")
             # Display the text response
             if response and hasattr(response, 'text') and response.text:
                 print(f"\n🤖 GPT says: {response.text}")
@@ -154,6 +161,9 @@ Always provide both text responses for conversation and appropriate function cal
             elif response and hasattr(response, 'set_goal') and response.set_goal:
                 self.parse_prompt(response.set_goal.prompts)
                 continue
+            elif response and hasattr(response, 'show_grid') and response.show_grid:
+                self.get_logger().info("Showing grid image to the user.")
+                self.show_grid_image()
             elif response and hasattr(response, 'spawn_robot') and response.spawn_robot:
                 self.spawn_robot(
                     response.spawn_robot.robot_name,
@@ -318,7 +328,9 @@ Always provide both text responses for conversation and appropriate function cal
         """
         if self.latest_preprocessed is not None:
             cv2.imshow("Grid Image", self.latest_preprocessed)
-            cv2.waitKey(1)
+            cv2.waitKey(0)
+            cv2.destroyWindow("Grid Image")
+            
 
     def upload_image_to_openai(self, image_cv2: np.ndarray):
         """
@@ -424,7 +436,7 @@ def main():
     try:
         while rclpy.ok():
             rclpy.spin_once(node, timeout_sec=0.1)
-            node.show_grid_image()
+            # node.show_grid_image()
     finally:
         node.destroy_node()
         rclpy.shutdown()
