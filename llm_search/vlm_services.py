@@ -23,8 +23,8 @@ from ultralytics import SAM
 class VLMServices(Node):
     
     system_prompt = """
-You are given a Bird's Eye View of the scene. The environment can be deployed with multiple TurtleBots. You are a centralised scene planner.\
-Semantically analyze the Bird's Eye View of the scene for environment space, objects, and their relationships to provide structured responses.
+You are given a view of the scene from the perspective of a human. The environment can be deployed with multiple TurtleBots. You are a centralised scene planner.\
+Semantically analyze the scene for environment space, objects, and their relationships to provide structured responses.
 
 You can perform two tasks with TurtleBots in the scene: multi-robot search and multi-robot monitoring in the given scene. \
 First ask/Analyse what behavior the user wants (monitor or search).For each task, \
@@ -36,6 +36,8 @@ Each task should follow this general step:
    Based on the user input, analyze this image to understand the scene layout and objects. \
    ROBOT ALLOCATION: Identify feasible and meaningful locations(grids) to spawn robots in the scene. \
    Reason how many grids are allocated and why those chosen grid cells are suitable for the task. \
+   Try to spread the robots out into different relevant areas to maximize coverage. \
+   CHOOSE ONLY GRID CELLS THAT ARE FLOORS. \
    THE MOBILE ROBOTS CAN ONLY BE SPAWNED ON THE FLOOR. \
    MORE THAN ONE ROBOT CANNOT BE SPAWNED IN THE SAME GRID. 
 
@@ -69,12 +71,13 @@ Remember:
 - CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE SPAWNING
 - DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
 - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
+- REASON IN MULTIPLE STEPS: Provide a chain_of_thought array with multiple reasoning steps, breaking down your thinking process into distinct steps.
 
 Always provide both text responses for conversation and appropriate function calls when needed.
 """
     def __init__(self):
         super().__init__('vlm_services')
-        self.interface = OpenAIInterface(self.system_prompt, model="gpt-4o", max_messages=100)
+        self.interface = OpenAIInterface(self.system_prompt, model="o4-mini", max_messages=100)
         self.get_logger().info('VLM Services Node has been started')
 
         self.conversation_state = False
@@ -139,6 +142,7 @@ Always provide both text responses for conversation and appropriate function cal
             - CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE SPAWNING
             - DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
             - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
+            - REASON IN MULTIPLE STEPS: Provide a chain_of_thought array with multiple reasoning steps, breaking down your thinking process into distinct steps.
             """
             with self.interface_lock:
                 self.interface.add_message("system", reminders)
@@ -328,6 +332,7 @@ Always provide both text responses for conversation and appropriate function cal
         """
         if self.latest_preprocessed is not None:
             cv2.imshow("Grid Image", self.latest_preprocessed)
+            self.get_logger().info("Press any key to close the grid image window and move to user prompt.")
             cv2.waitKey(0)
             cv2.destroyWindow("Grid Image")
             

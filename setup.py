@@ -23,13 +23,21 @@ data_files.append(('share/' + package_name + '/protos/tb4_meshes', [
 
 data_files.append(('share/' + package_name + '/protos', ['protos/pib.proto']))
 data_files.append(('share/' + package_name + '/protos/pib_meshes', [
-    'protos/pib_meshes/body_visual.dae',
-    'protos/pib_meshes/bumper_visual.dae',
-    'protos/pib_meshes/camera_bracket.dae',
-    'protos/pib_meshes/rplidar.dae',
-    'protos/pib_meshes/tower_sensor_plate.dae',
-    'protos/pib_meshes/tower_standoff.dae',
-    'protos/pib_meshes/weight_block.dae'
+    'protos/pib_meshes/urdf_body.stl',
+    'protos/pib_meshes/urdf_camera_link.stl',
+    'protos/pib_meshes/urdf_elbow-lower.stl',
+    'protos/pib_meshes/urdf_elbow-upper.stl',
+    'protos/pib_meshes/urdf_finger_distal.stl',
+    'protos/pib_meshes/urdf_finger_proximal.stl',
+    'protos/pib_meshes/urdf_forearm.stl',
+    'protos/pib_meshes/urdf_head.stl',
+    'protos/pib_meshes/urdf_head_base.stl',
+    'protos/pib_meshes/urdf_palm_left.stl',
+    'protos/pib_meshes/urdf_palm_right.stl',
+    'protos/pib_meshes/urdf_shoulder_horizontal.stl',
+    'protos/pib_meshes/urdf_shoulder_vertical.stl',
+    'protos/pib_meshes/urdf_thumb_rotator_left.stl',
+    'protos/pib_meshes/urdf_thumb_rotator_right.stl'
 ]))
 
 data_files.append(('share/' + package_name, ['package.xml']))

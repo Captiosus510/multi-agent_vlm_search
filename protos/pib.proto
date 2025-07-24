@@ -8,7 +8,7 @@ PROTO pib [
   field  SFVec3f     translation     0 0 0
   field  SFRotation  rotation        0 0 1 0
   field  SFString    name            "pib"  # Is `Robot.name`.
-  field  SFString    controller      "void" # Is `Robot.controller`.
+  field  SFString    controller      "ros2" # Is `Robot.controller`.
   field  MFString    controllerArgs  []     # Is `Robot.controllerArgs`.
   field  SFString    customData      ""     # Is `Robot.customData`.
   field  SFBool      supervisor      FALSE  # Is `Robot.supervisor`.
@@ -40,6 +40,7 @@ PROTO pib [
                 geometry DEF urdf_body Mesh {
                   url "pib_meshes/urdf_body.stl"
                 }
+                castShadows FALSE
               }
             ]
           }
@@ -303,6 +304,7 @@ PROTO pib [
                                   geometry DEF urdf_elbow-upper Mesh {
                                     url "pib_meshes/urdf_elbow-upper.stl"
                                   }
+                                  castShadows FALSE
                                 }
                               ]
                             }

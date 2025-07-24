@@ -38,7 +38,8 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'robot_name': 'global_cam'},
-            {'show_depth': False}  # Global camera does not have depth
+            {'show_depth': False},  # Global camera does not have depth
+            {'show_rgb': True},
         ]
     )
 
@@ -66,7 +67,7 @@ def generate_launch_description():
         webots._supervisor,
         global_cam,
         all_robo_cams,
-        # camera_viewer_global,
+        camera_viewer_global,
         # global_mapper,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore
