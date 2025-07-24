@@ -38,7 +38,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'robot_name': 'global_cam'},
-            {'has_depth': False}  # Global camera does not have depth
+            {'show_depth': False}  # Global camera does not have depth
         ]
     )
 
@@ -52,11 +52,21 @@ def generate_launch_description():
         ]
     )
 
+    all_robo_cams = Node(
+        package='llm_search',
+        executable='global_cams',
+        output='screen',
+        parameters=[
+            {'topic_name': '/detector/image'},
+        ]
+    )
+
     return LaunchDescription([
         webots,
         webots._supervisor,
         global_cam,
-        camera_viewer_global,
+        all_robo_cams,
+        # camera_viewer_global,
         # global_mapper,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore

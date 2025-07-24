@@ -42,7 +42,8 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
         parameters=[
             {'robot_name': robot_name},
-            {'camera_topic': '/detector/image'}
+            {'camera_topic': '/detector/image'},
+            {'show_depth': False}  # Assuming depth camera is available
         ]
     )
 

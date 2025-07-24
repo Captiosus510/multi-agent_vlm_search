@@ -32,7 +32,7 @@ PROTO Turtlebot4 [
         rotation 0.000000 0.000000 1.000000 1.570796
         children [
           DEF body_visual_visual CadShape {
-            url "meshes/body_visual.dae"
+            url "tb4_meshes/body_visual.dae"
           }
         ]
       }
@@ -63,7 +63,7 @@ PROTO Turtlebot4 [
       }
         children [
           DEF bumper_visual_visual CadShape {
-            url "meshes/bumper_visual.dae"
+            url "tb4_meshes/bumper_visual.dae"
           }
         ]
         physics Physics {
@@ -676,7 +676,7 @@ PROTO Turtlebot4 [
             translation 0.0 0.0 0.0265
             children [
              # DEF shell_visual CadShape {
-             #   url "meshes/shell.dae"
+             #   url "tb4_meshes/shell.dae"
              # }
              Shape{
               appearance Appearance {
@@ -700,7 +700,7 @@ PROTO Turtlebot4 [
                 rotation 0.000000 1.000000 0.000000 1.570796
                 children [
                   DEF tower_standoff_visual CadShape {
-                    url "meshes/tower_standoff.dae"
+                    url "tb4_meshes/tower_standoff.dae"
                   }
                 ]
               }
@@ -799,7 +799,7 @@ PROTO Turtlebot4 [
             translation 0.000000 0.000000 0.252570
             children [
               DEF tower_sensor_plate_visual CadShape {
-                url "meshes/tower_sensor_plate.dae"
+                url "tb4_meshes/tower_sensor_plate.dae"
               }
             ]
             name "tower_sensor_plate"
@@ -827,7 +827,7 @@ PROTO Turtlebot4 [
             rotation 0.000000 0.000000 -1.000000 1.570796
             children [
               DEF rplidar_visual CadShape {
-                url "meshes/rplidar.dae"
+                url "tb4_meshes/rplidar.dae"
               }
               Lidar {
                 name "rplidar"
@@ -862,7 +862,7 @@ PROTO Turtlebot4 [
             translation -0.118000 0.000000 0.052570
             children [
               DEF camera_bracket_visual CadShape {
-               url "meshes/camera_bracket.dae"
+               url "tb4_meshes/camera_bracket.dae"
              }
               Solid {
                translation 0.047400 0.000000 0.091760
@@ -1047,7 +1047,7 @@ PROTO Turtlebot4 [
         translation 0.060053 0.087588 0.097885
         children [
           DEF weight_block_visual CadShape {
-            url "meshes/weight_block.dae"
+            url "tb4_meshes/weight_block.dae"
           }
         ]
         name "front_left_bottom_weight_block"

@@ -11,14 +11,25 @@ data_files.append(('share/' + package_name + '/worlds', ['worlds/detection_test.
 data_files.append(('share/' + package_name + '/resource', ['resource/tb4.urdf']))
 data_files.append(('share/' + package_name + '/resource', ['resource/global_cam.urdf']))
 data_files.append(('share/' + package_name + '/protos', ['protos/Turtlebot4.proto']))
-data_files.append(('share/' + package_name + '/protos/meshes', [
-    'protos/meshes/body_visual.dae',
-    'protos/meshes/bumper_visual.dae',
-    'protos/meshes/camera_bracket.dae',
-    'protos/meshes/rplidar.dae',
-    'protos/meshes/tower_sensor_plate.dae',
-    'protos/meshes/tower_standoff.dae',
-    'protos/meshes/weight_block.dae'
+data_files.append(('share/' + package_name + '/protos/tb4_meshes', [
+    'protos/tb4_meshes/body_visual.dae',
+    'protos/tb4_meshes/bumper_visual.dae',
+    'protos/tb4_meshes/camera_bracket.dae',
+    'protos/tb4_meshes/rplidar.dae',
+    'protos/tb4_meshes/tower_sensor_plate.dae',
+    'protos/tb4_meshes/tower_standoff.dae',
+    'protos/tb4_meshes/weight_block.dae'
+]))
+
+data_files.append(('share/' + package_name + '/protos', ['protos/pib.proto']))
+data_files.append(('share/' + package_name + '/protos/pib_meshes', [
+    'protos/pib_meshes/body_visual.dae',
+    'protos/pib_meshes/bumper_visual.dae',
+    'protos/pib_meshes/camera_bracket.dae',
+    'protos/pib_meshes/rplidar.dae',
+    'protos/pib_meshes/tower_sensor_plate.dae',
+    'protos/pib_meshes/tower_standoff.dae',
+    'protos/pib_meshes/weight_block.dae'
 ]))
 
 data_files.append(('share/' + package_name, ['package.xml']))
@@ -45,6 +56,7 @@ setup(
             'local_mapper = llm_search.local_mapper:main',
             'global_map_merger = llm_search.global_mapper:main',
             'detector = llm_search.detector:main',
+            'global_cams = llm_search.global_cams:main',
         ],
     },
 )
