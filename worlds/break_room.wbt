@@ -35,8 +35,8 @@ WorldInfo {
   title "Break Room"
 }
 Viewpoint {
-  orientation -0.23709487101352084 0.002292053563732275 0.9714837974096855 3.1228100672945476
-  position 13.365526658856597 0.7270625783313109 9.124169323226942
+  orientation -0.26955828219019895 -0.036892675285055666 0.9622771238125639 3.403486533379783
+  position 8.54187092333956 3.8694585734782923 6.748135716458158
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -297,8 +297,8 @@ Wall {
   size 0.06 6.2 2.5
 }
 Door {
-  translation 0 4.8 0
-  rotation 0 0 -1 1.5708
+  translation -6.17002 -1.97998 0
+  rotation 0 0 -1 3.67802e-06
   size 0.06 1 2.5
   frameSize 0.01 0.05 0.05
   frameAppearance MattePaint {
@@ -323,7 +323,7 @@ PottedTree {
   name "potted tree(1)"
 }
 PottedTree {
-  translation -5.37 -2.53 0
+  translation -3.09 -2.27 0
   name "potted tree(2)"
 }
 Cabinet {
@@ -413,7 +413,7 @@ Cabinet {
   }
 }
 Cabinet {
-  translation -4.42835 -2.84503 0
+  translation -4.15835 -2.84503 0
   rotation 0 0 1 1.57079
   name "cabinet(4)"
   outerThickness 0.02
@@ -947,7 +947,7 @@ Table {
   }
 }
 Table {
-  translation -5.7 3.61 0
+  translation -5.62 3.71 0
   name "table(3)"
   feetSize 0.05 0.05
   legAppearance MattePaint {
@@ -963,7 +963,7 @@ Table {
   }
 }
 Table {
-  translation -5.53 0.05 0
+  translation -5.62 0.06 0
   name "table(5)"
   feetSize 0.05 0.05
   legAppearance MattePaint {
@@ -971,7 +971,7 @@ Table {
   }
 }
 Table {
-  translation -5.53 1.86 0
+  translation -5.62 1.89 0
   name "table(6)"
   feetSize 0.05 0.05
   legAppearance MattePaint {
@@ -979,7 +979,7 @@ Table {
   }
 }
 Table {
-  translation -1.77 4.21 0
+  translation -1.77 4.23 0
   rotation 0 0 1 1.5707996938995747
   name "table(7)"
   feetSize 0.05 0.05
@@ -988,7 +988,7 @@ Table {
   }
 }
 Table {
-  translation -3.18 4.23 3.81869e-14
+  translation -3.17 4.23 1.91834e-10
   rotation 9.58976e-09 9.58979e-09 -1 -1.5707953071795862
   name "table(8)"
   size 1 1 0.74
@@ -1008,7 +1008,7 @@ Monitor {
   name "monitor(3)"
 }
 Monitor {
-  translation -5.54759 0.400837 0.75
+  translation -5.62151 0.431453 0.75
   rotation 0 0 1 -0.39270530717958607
   name "monitor(4)"
 }
@@ -1018,12 +1018,12 @@ Monitor {
   name "monitor(5)"
 }
 Monitor {
-  translation -5.64907 1.41465 0.77
+  translation -5.68049 1.65251 0.77
   rotation 0 0 -1 -0.13090530717958604
   name "monitor(6)"
 }
 Monitor {
-  translation -5.69703 1.98486 0.74
+  translation -5.70296 2.25797 0.74
   rotation 0 0 1 -0.39269530717958645
   name "monitor(7)"
 }
@@ -1052,7 +1052,7 @@ Keyboard {
   name "keyboard(1)"
 }
 Keyboard {
-  translation -4.83065 -0.281884 0.97
+  translation -5.37059 0.141274 0.75
   rotation 0 0 1 -3.0106993877991495
   name "keyboard(2)"
 }
@@ -1086,17 +1086,17 @@ OfficeChair {
 }
 OfficeChair {
   translation -4.75207 0.0212197 -3.7336e-08
-  rotation -7.67371e-09 -5.88825e-09 1 -2.8797953071795863
+  rotation 2.31517e-08 -9.58972e-09 -1 0.7854
   name "office chair(3)"
 }
 OfficeChair {
-  translation -5.01 1.79 0
+  translation -4.76 1.95 0
   rotation 0 0 1 3.14159
   name "office chair(4)"
 }
 OfficeChair {
-  translation -2.48609 3.43391 0
-  rotation 0 0 1 0.785397
+  translation -1.8061 3.30505 0
+  rotation 0 0 1 1.0472
   name "office chair(5)"
 }
 Robot {

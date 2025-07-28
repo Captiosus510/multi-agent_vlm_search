@@ -167,7 +167,7 @@ Always provide both text responses for conversation and appropriate function cal
                 continue
             elif response and hasattr(response, 'show_grid') and response.show_grid:
                 self.get_logger().info("Showing grid image to the user.")
-                self.show_grid_image()
+                # self.show_grid_image()
             elif response and hasattr(response, 'spawn_robot') and response.spawn_robot:
                 self.spawn_robot(
                     response.spawn_robot.robot_name,
@@ -332,9 +332,9 @@ Always provide both text responses for conversation and appropriate function cal
         """
         if self.latest_preprocessed is not None:
             cv2.imshow("Grid Image", self.latest_preprocessed)
-            self.get_logger().info("Press any key to close the grid image window and move to user prompt.")
-            cv2.waitKey(0)
-            cv2.destroyWindow("Grid Image")
+            # self.get_logger().info("Press any key to close the grid image window and move to user prompt.")
+            cv2.waitKey(1)
+            # cv2.destroyWindow("Grid Image")
             
 
     def upload_image_to_openai(self, image_cv2: np.ndarray):
@@ -441,7 +441,7 @@ def main():
     try:
         while rclpy.ok():
             rclpy.spin_once(node, timeout_sec=0.1)
-            # node.show_grid_image()
+            node.show_grid_image()
     finally:
         node.destroy_node()
         rclpy.shutdown()
