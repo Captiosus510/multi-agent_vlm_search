@@ -24,8 +24,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/computers/protos/Keyboard.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/OfficeChair.proto"
 IMPORTABLE EXTERNPROTO "../protos/Turtlebot4.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/kitchen/utensils/protos/Glass.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/telephone/protos/OfficeTelephone.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/CardboardBox.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/humans/pedestrian/protos/Pedestrian.proto"
 
 WorldInfo {
   info [
@@ -37,8 +37,8 @@ WorldInfo {
   title "Break Room"
 }
 Viewpoint {
-  orientation 0.020182328164091136 -0.9979002018487227 -0.06154559919405617 5.648189506435333
-  position -9.405807826096545 0.22454913002792637 7.6199485383890355
+  orientation -0.3674756645548499 -0.31016075013536026 0.8767907076580145 4.415782798473459
+  position -1.8343659172502198 5.773586788526453 7.825057339391722
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -60,7 +60,6 @@ Floor {
     }
   }
 }
-
 CeilingSpotLight {
   translation -1.82 -2.27 2
   name "ceiling spot light"
@@ -1191,4 +1190,16 @@ Robot {
   battery [
     0
   ]
+}
+CardboardBox {
+  translation 0.64 2.23 0.16
+  size 0.3 0.3 0.3
+}
+Pedestrian {
+  translation 4.5 -0.83 1.27
+}
+Pedestrian {
+  translation -4.88 -0.83 1.37
+  rotation 0 0 1 -0.785395307179586
+  name "pedestrian(1)"
 }
