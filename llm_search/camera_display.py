@@ -65,6 +65,7 @@ class CameraViewer(Node):
         try:
             # Convert ROS Image message to OpenCV image (BGR by default)
             depth_array = self.bridge.imgmsg_to_cv2(msg, desired_encoding='32FC1')
+            # np.save('test_depth.npy', depth_array)  # Save depth array for debugging
             # self.get_logger().info(depth_array.flatten()[:100])
             depth_image = self.visualize_depth(depth_array)
             # Process the depth image if needed

@@ -38,7 +38,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'robot_name': 'global_cam'},
-            {'show_depth': False},  # Global camera does not have depth
+            {'show_depth': True},  # Global camera does not have depth
             {'show_rgb': True},
         ]
     )

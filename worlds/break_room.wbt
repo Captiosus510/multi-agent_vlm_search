@@ -35,8 +35,8 @@ WorldInfo {
   title "Break Room"
 }
 Viewpoint {
-  orientation -0.26955828219019895 -0.036892675285055666 0.9622771238125639 3.403486533379783
-  position 8.54187092333956 3.8694585734782923 6.748135716458158
+  orientation -0.16324298345354846 0.9136019513253099 0.3724019372771447 0.8947244000888547
+  position -3.048538411357131 2.103917869130652 4.622603354485229
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -299,6 +299,16 @@ Wall {
 Door {
   translation -6.17002 -1.97998 0
   rotation 0 0 -1 3.67802e-06
+  size 0.06 1 2.5
+  frameSize 0.01 0.05 0.05
+  frameAppearance MattePaint {
+    baseColor 0.133333 0.0666667 0
+  }
+}
+Door {
+  translation -1.99898e-05 4.80002 0
+  rotation 0 0 1 -1.5707953071795862
+  name "door(1)"
   size 0.06 1 2.5
   frameSize 0.01 0.05 0.05
   frameAppearance MattePaint {
@@ -1103,10 +1113,21 @@ Robot {
   translation 3.3786 3.29366 1.89995
   rotation 0.13050301753046564 0.01717530230715774 -0.9912991331611769 2.88204
   children [
+    RangeFinder {
+      name "depth_sensor"
+      fieldOfView 1.5
+      width 1280
+      height 720
+      near 0.2
+      minRange 0.2
+      maxRange 10
+      noise 0.01
+      resolution 0.001
+    }
     Camera {
       name "rgb_camera"
       fieldOfView 1.5
-      width 1190
+      width 1280
       height 720
     }
   ]
