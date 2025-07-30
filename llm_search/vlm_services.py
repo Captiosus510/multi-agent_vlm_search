@@ -16,9 +16,11 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
 from webots_ros2_msgs.srv import SpawnNodeFromString
 import re
-
+import scipy
+from scipy.spatial import Delaunay
+from scipy.spatial.transform import Rotation as R
 from ultralytics import SAM
-
+from llm_search.utils.vector import Vector7D
 
 class VLMServices(Node):
     
@@ -88,12 +90,23 @@ Always provide both text responses for conversation and appropriate function cal
         self.goal_publisher = self.create_publisher(String, 'robot_goal', 10)
         self.goal_timer = self.create_timer(2, self.timer_callback)
 
+        self.is_image_processed = False
+
         self.global_cam_subscription = self.create_subscription(
             Image,
             '/global_cam/rgb_camera/image_color',
             self.image_callback,
             10
         )
+
+        self.global_depth_subscription = self.create_subscription(
+            Image,
+            '/global_cam/depth_sensor/image',
+            self.depth_callback,
+            10
+        )
+
+        self.latest_depth = np.zeros((1, 1), dtype=np.float32)  # empty depth array as placeholder
 
         self.latest_image = np.zeros((1, 1, 3), dtype=np.uint8)  # empty black image as placeholder
         self.bridge = CvBridge()
@@ -127,6 +140,12 @@ Always provide both text responses for conversation and appropriate function cal
         self.segmentation_model = SAM("sam2.1_b.pt")
 
         self.show_grid = False  # Flag to control grid display
+
+        self.pib_pos = Vector7D(3.3786, 3.29366, 1.89995, 0.13050301753046564, 0.01717530230715774, -0.9912991331611769, 2.88204)
+        self.fx = 686.9927350716014
+        self.fy = 686.9927350716014
+        self.cx = 640.0
+        self.cy = 360.0
 
     def conversation(self):
         """
@@ -285,46 +304,123 @@ Always provide both text responses for conversation and appropriate function cal
             self.search_result_queue.put(cv_image)
         except Exception as e:
             self.get_logger().error(f"CV Bridge error in found objects callback: {e}")
+    
+    def depth_callback(self, msg: Image):
+        """
+        Callback to handle depth images from the global camera.
+        """
+        try:
+            # Convert ROS Image message to OpenCV image (BGR by default)
+            cv_depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding='32FC1')
+            self.latest_depth = cv_depth.astype(np.float32)
+        except Exception as e:
+            self.get_logger().error(f"CV Bridge error in depth callback: {e}")
 
     def image_preprocess(self):
         """
         Preprocess the latest image for display.
         """
-        if self.latest_image is not None and self.conversation_state:
-            grid_image = self.latest_image.copy()
+        mask = np.load('src/llm_search/llm_search/best_mask.npy')
+        if (self.latest_image is not None and 
+            mask is not None and 
+            not self.is_image_processed and
+            self.latest_depth.shape[0] > 1 and
+            self.latest_image.shape[:2] == self.latest_depth.shape[:2]):
+            # Resize latest_image to match mask dimensions
+            resized_image = cv2.resize(self.latest_image, (mask.shape[1], mask.shape[0]))
+
+            # best_mask: binary mask from SAM+CLIP
+            contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            # Usually there is only 1 large contour, but you can pick the biggest
+            floor_contour = max(contours, key=cv2.contourArea)
+
+            epsilon = 0.01 * cv2.arcLength(floor_contour, True)
+            approx = cv2.approxPolyDP(floor_contour, epsilon, True)
+            # Convert polygon points to Nx2 numpy array
+            polygon = approx.reshape(-1, 2)
+
+            # bounding box
+            min_x, min_y = polygon.min(axis=0)
+            max_x, max_y = polygon.max(axis=0)
+
+            step = 115  # smaller step → denser grid → more triangles
+
+            # Create a grid of points within the bounding box
+            # This will create a grid of points spaced by 'step' pixels
+            # and only include points that are inside the polygon
+            grid_points = []
+            for y in range(min_y, max_y, step):
+                for x in range(min_x, max_x, step):
+                    if cv2.pointPolygonTest(polygon, (x,y), False) >= 0:
+                        grid_points.append([x,y])
+
+            grid_points = np.array(grid_points)
+
+            # Convert polygon points to Nx2 numpy array
+            all_points = np.vstack([polygon, grid_points])
+
+            # Perform Delaunay triangulation
+            self.tri = Delaunay(all_points)
+
+            # compute the centroids of each triangle
+            self.triangle_centers = np.array([np.mean(all_points[simplex], axis=0) for simplex in self.tri.simplices])
+
+            # get the coordinates of each centroid in world coordinates
+            world_points = []
+            valid_simplices = []
+            valid_centers = []
+            for i, simplex in enumerate(self.tri.simplices):
+                centroid = np.mean(all_points[simplex], axis=0)
+                u, v = centroid
+                depth = self.latest_depth[int(v), int(u)]
+                if np.isnan(depth) or depth <= 0 or depth > 10:  # Adjust threshold as needed
+                    continue  # Skip invalid depth values
+
+                # The original deprojection assumed a standard CV camera frame (Z-fwd, X-right, Y-down).
+                # However, many robotics systems and simulators use a different frame (X-fwd, Y-left, Z-up).
+                # We'll convert the pixel coordinates into this robotics-standard frame.
+                X_cam = depth
+                Y_cam = -(u - self.cx) * depth / self.fx
+                Z_cam = -(v - self.cy) * depth / self.fy
+                P_camera = np.array([X_cam, Y_cam, Z_cam])
+
+                # Convert axis-angle to rotation matrix
+                axis = np.array([self.pib_pos.x_axis, self.pib_pos.y_axis, self.pib_pos.z_axis])
+                angle = self.pib_pos.rotation
+                r = R.from_rotvec(axis * angle)
+                R_matrix = r.as_matrix()
+
+                # Camera position in world coordinates
+                T = np.array([self.pib_pos.x, self.pib_pos.y, self.pib_pos.z])
+
+                # Transform point from camera to world coordinates
+                P_world = R_matrix @ P_camera + T
+
+                if P_world[2] < 0.2:
+                    world_points.append(P_world)
+                    valid_simplices.append(simplex)
+                    valid_centers.append(centroid)
+
+            # Draw filtered triangles
+            for simplex in valid_simplices:
+                pts = all_points[simplex].astype(int)
+                cv2.polylines(resized_image, [pts], isClosed=True, color=(255, 0, 255), thickness=2)
+
+            # Draw numbers for filtered triangles
+            for i, center in enumerate(valid_centers):
+                c = tuple(np.round(center).astype(int))
+                cv2.putText(resized_image, str(i), c, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2, cv2.LINE_AA)
+
+            self.world_points = np.array(world_points)
+            self.triangle_centers = np.array(valid_centers)
+            self.tri.simplices = np.array(valid_simplices)
+
+            # Store the latest preprocessed image
+            self.latest_preprocessed = resized_image.copy()
+
+            self.is_image_processed = True
             
-            # Create a grid overlay on the image
-            height, width, _ = grid_image.shape
-            cell_width = width // self.num_cols
-            cell_height = height // self.num_rows
-
-            # draw grid and number the cells
-            cell_number = 0
-            num_cols = self.num_cols
-            num_rows = self.num_rows
-            for row in range(num_rows):
-                for col in range(num_cols):
-                    x = int(col * cell_width)
-                    y = int(row * cell_height)
-                    top_left = (x, y)
-                    bottom_right = (min(x + cell_width, width - 1), min(y + cell_height, height - 1))
-                    cv2.rectangle(grid_image, top_left, bottom_right, (255, 0, 0), 1)
-                    # Calculate the center of the grid cell for numbering
-                    center_x = x + (min(cell_width, width - x) // 2)
-                    center_y = y + (min(cell_height, height - y) // 2)
-                    cv2.putText(
-                        grid_image,
-                        str(cell_number),
-                        (center_x - 10, center_y + 10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 0, 255),
-                        1,
-                        cv2.LINE_AA
-                    )
-                    cell_number += 1
-
-            self.latest_preprocessed = grid_image.copy()
 
     def show_grid_image(self):
         """
@@ -387,8 +483,15 @@ Always provide both text responses for conversation and appropriate function cal
             with self.interface_lock:
                 self.interface.add_message("user", f"ERROR: Robot {robot_name} has already been spawned!")
             return
-        spawn_x, spawn_y = self.get_coords_from_grid(grid_cell)
-        position = f"{spawn_x} {spawn_y} -0.0065"
+        
+        if grid_cell < 0 or grid_cell >= len(self.world_points):
+            self.get_logger().error(f"Invalid grid_cell {grid_cell} provided for spawning.")
+            with self.interface_lock:
+                self.interface.add_message("user", f"ERROR: Invalid grid cell {grid_cell}. Please choose a valid grid cell from the image.")
+            return
+        
+        spawn_x, spawn_y, spawn_z = self.world_points[grid_cell]
+        position = f"{spawn_x} {spawn_y} {spawn_z}"
         
         try:
             data_string = "Turtlebot4 {name \"" + robot_name + "\" translation " + position + " controller \"<extern>\"}"
