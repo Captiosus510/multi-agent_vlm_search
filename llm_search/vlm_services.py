@@ -34,7 +34,9 @@ you interactively refine the user's input prompt and provide structured output t
 
 
 Each task should follow this general step:
-1. Use the take_picture function to see the environment with a grid overlay. The grids are numbered. \
+1. Ask the user for their specific goal or task they want to achieve with the robots.
+
+2. Use the take_picture function to see the environment with a grid overlay. The grids are numbered. \
    Based on the user input, analyze this image to understand the scene layout and objects. \
    ROBOT ALLOCATION: Identify feasible and meaningful locations(grids) to spawn robots in the scene. \
    Reason how many grids are allocated and why those chosen grid cells are suitable for the task. \
@@ -43,9 +45,8 @@ Each task should follow this general step:
    THE MOBILE ROBOTS CAN ONLY BE SPAWNED ON THE FLOOR. \
    MORE THAN ONE ROBOT CANNOT BE SPAWNED IN THE SAME GRID. 
 
-2. Confirm with the user about the grid cell numbers you have chosen for spawning robots. 
-Use show_grid to show the grid image with the latest preprocessed image. YOU MUST SHOW THE GRID TO CONFIRM THE GRID NUMBERS WITH THE USER. \
-   Use spawn_robot function to spawn robots. 
+3. Confirm with the user about the grid cell numbers you have chosen. Use show_grid to show the grid image.
+   **After the user confirms the location, you MUST use the spawn_robot function. Do NOT use show_grid again after getting confirmation.**
 
 For multi-robot monitoring:
 1. Monitoring Goal: Ask the user if they are monitoring for anything particular, say an object or a person if not mentioned. \
@@ -65,6 +66,7 @@ For multi-robot monitoring:
 Function usage:
 - take_picture: No parameters needed
 - set_goal: Requires prompts (string) - comma-separated list
+- show_grid: Requires grid_cells (list of integers) - list of grid cells that you selected to spawn robots in
 - spawn_robot: Requires grid_cell (int), robot_name (string), behavior ("MONITOR" or "SEARCH")
 - stop: No parameters needed
 
@@ -161,6 +163,7 @@ Always provide both text responses for conversation and appropriate function cal
             - CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE SPAWNING
             - DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
             - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
+            - ONLY ASK FOR CONFIRMATION ONCE FOR THE GRID CELLS
             - REASON IN MULTIPLE STEPS: Provide a chain_of_thought array with multiple reasoning steps, breaking down your thinking process into distinct steps.
             """
             with self.interface_lock:
@@ -186,7 +189,7 @@ Always provide both text responses for conversation and appropriate function cal
                 continue
             elif response and hasattr(response, 'show_grid') and response.show_grid:
                 self.get_logger().info("Showing grid image to the user.")
-                # self.show_grid_image()
+                self.show_grid_image(response.show_grid.grid_cells)
             elif response and hasattr(response, 'spawn_robot') and response.spawn_robot:
                 self.spawn_robot(
                     response.spawn_robot.robot_name,
@@ -410,7 +413,16 @@ Always provide both text responses for conversation and appropriate function cal
             # Draw numbers for filtered triangles
             for i, center in enumerate(valid_centers):
                 c = tuple(np.round(center).astype(int))
-                cv2.putText(resized_image, str(i), c, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(
+                    resized_image,
+                    str(i),
+                    c,
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,  # smaller font size
+                    (0, 255, 255),
+                    1,  # thinner line for less bold
+                    cv2.LINE_AA
+                )
 
             self.world_points = np.array(world_points)
             self.triangle_centers = np.array(valid_centers)
@@ -422,15 +434,37 @@ Always provide both text responses for conversation and appropriate function cal
             self.is_image_processed = True
             
 
-    def show_grid_image(self):
+    def show_grid_image(self, grid_cells: list[int]):
         """
-        Display the grid image in a separate window.
+        Display the grid image in a separate window, highlighting selected cells.
         """
-        if self.latest_preprocessed is not None:
-            cv2.imshow("Grid Image", self.latest_preprocessed)
+        if self.latest_image is not None and self.tri is not None:
+            # Create a clean resized image to draw highlights on
+            mask = np.load('src/llm_search/llm_search/best_mask.npy')
+            highlight_img = cv2.resize(self.latest_image, (mask.shape[1], mask.shape[0]))
+            overlay = highlight_img.copy()
+
+            for grid_cell in grid_cells:
+                if 0 <= grid_cell < len(self.tri.simplices):
+                    # Get the simplex (triangle) for the given grid cell index
+                    simplex = self.tri.simplices[grid_cell]
+                    # Get the points of the triangle
+                    pts = self.tri.points[simplex].astype(int)
+                    # Draw a filled polygon on the overlay
+                    cv2.fillPoly(overlay, [pts], (0, 255, 0))  # Green highlight
+
+                    # Draw a dot in the center of the polygon
+                    center = self.triangle_centers[grid_cell]
+                    cv2.circle(highlight_img, tuple(np.round(center).astype(int)), 5, (0, 0, 255), -1) # Red dot
+
+            # Blend the overlay with the original image
+            alpha = 0.4  # Transparency factor
+            cv2.addWeighted(overlay, alpha, highlight_img, 1 - alpha, 0, highlight_img)
+
+            cv2.imshow("Grid Image", highlight_img)
             # self.get_logger().info("Press any key to close the grid image window and move to user prompt.")
-            cv2.waitKey(1)
-            # cv2.destroyWindow("Grid Image")
+            cv2.waitKey(0)
+            cv2.destroyWindow("Grid Image")
             
 
     def upload_image_to_openai(self, image_cv2: np.ndarray):
@@ -544,7 +578,7 @@ def main():
     try:
         while rclpy.ok():
             rclpy.spin_once(node, timeout_sec=0.1)
-            node.show_grid_image()
+            #node.show_grid_image(response.show_grid.grid_cells)
     finally:
         node.destroy_node()
         rclpy.shutdown()

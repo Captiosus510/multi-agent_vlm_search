@@ -22,6 +22,7 @@ class SpawnRobotCall(BaseModel):
 
 class ShowGridCall(BaseModel):
     name: str = "show_grid"
+    grid_cells: list[int]
 
 class StopCall(BaseModel):
     name: str = "stop"
