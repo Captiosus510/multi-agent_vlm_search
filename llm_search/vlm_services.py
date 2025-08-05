@@ -45,7 +45,7 @@ Each task should follow this general step:
    THE MOBILE ROBOTS CAN ONLY BE SPAWNED ON THE FLOOR. \
    MORE THAN ONE ROBOT CANNOT BE SPAWNED IN THE SAME GRID. 
 
-3. Confirm with the user about the grid cell numbers you have chosen. Use show_grid to show the grid image.
+3. Confirm with the user about the grid cells you have chosen. Use show_grid to show the grid image. DO NOT SHOW THE GRID CELL NUMBERS, JUST THE IMAGE. \
    **After the user confirms the location, you MUST use the spawn_robot function. Do NOT use show_grid again after getting confirmation.**
 
 For multi-robot monitoring:
@@ -164,6 +164,7 @@ Always provide both text responses for conversation and appropriate function cal
             - DO NOT SPAWN A ROBOT AGAIN AFTER IT HAS BEEN SPAWNED
             - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
             - ONLY ASK FOR CONFIRMATION ONCE FOR THE GRID CELLS
+            - DO NOT SHOW GRID CELL NUMBERS, JUST THE IMAGE.
             - REASON IN MULTIPLE STEPS: Provide a chain_of_thought array with multiple reasoning steps, breaking down your thinking process into distinct steps.
             """
             with self.interface_lock:
