@@ -81,7 +81,7 @@ Always provide both text responses for conversation and appropriate function cal
 """
     def __init__(self):
         super().__init__('vlm_services')
-        self.interface = OpenAIInterface(self.system_prompt, model="o4-mini", max_messages=100)
+        self.interface = OpenAIInterface(self.system_prompt, model="gpt-4.1-nano", max_messages=100)
         self.get_logger().info('VLM Services Node has been started')
 
         self.conversation_state = False
