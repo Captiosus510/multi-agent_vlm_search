@@ -18,9 +18,10 @@ from webots_ros2_msgs.srv import SpawnNodeFromString
 import re
 import scipy
 from scipy.spatial import Delaunay
-from scipy.spatial.transform import Rotation as R
 from ultralytics import SAM
 from llm_search.utils.vector import Vector7D
+from llm_search.utils.mesher import generate_mesh, inverse_mesh
+
 
 class VLMServices(Node):
     
@@ -333,107 +334,15 @@ Always provide both text responses for conversation and appropriate function cal
             # Resize latest_image to match mask dimensions
             resized_image = cv2.resize(self.latest_image, (mask.shape[1], mask.shape[0]))
 
-            # best_mask: binary mask from SAM+CLIP
-            contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            depth_array = self.latest_depth.copy()
+            fx, fy, cx, cy = self.fx, self.fy, self.cx, self.cy
+            pib_pos = self.pib_pos
 
-            # Usually there is only 1 large contour, but you can pick the biggest
-            floor_contour = max(contours, key=cv2.contourArea)
+            # Generate the mesh from the mask and depth information
+            self.tri, self.tri_ids, self.verts, self.centroids_world_xy, self.polygon, self.mask_world_points = generate_mesh(mask, depth_array, fx, fy, cx, cy, pib_pos)
 
-            epsilon = 0.01 * cv2.arcLength(floor_contour, True)
-            approx = cv2.approxPolyDP(floor_contour, epsilon, True)
-            # Convert polygon points to Nx2 numpy array
-            polygon = approx.reshape(-1, 2)
+            # Get the inverse mesh to get the triangle centers
 
-            # bounding box
-            min_x, min_y = polygon.min(axis=0)
-            max_x, max_y = polygon.max(axis=0)
-
-            step = 115  # smaller step → denser grid → more triangles
-
-            # Create a grid of points within the bounding box
-            # This will create a grid of points spaced by 'step' pixels
-            # and only include points that are inside the polygon
-            grid_points = []
-            for y in range(min_y, max_y, step):
-                for x in range(min_x, max_x, step):
-                    if cv2.pointPolygonTest(polygon, (x,y), False) >= 0:
-                        grid_points.append([x,y])
-
-            grid_points = np.array(grid_points)
-
-            # Convert polygon points to Nx2 numpy array
-            all_points = np.vstack([polygon, grid_points])
-
-            # Perform Delaunay triangulation
-            self.tri = Delaunay(all_points)
-
-            # compute the centroids of each triangle
-            self.triangle_centers = np.array([np.mean(all_points[simplex], axis=0) for simplex in self.tri.simplices])
-
-            # get the coordinates of each centroid in world coordinates
-            world_points = []
-            valid_simplices = []
-            valid_centers = []
-            for i, simplex in enumerate(self.tri.simplices):
-                centroid = np.mean(all_points[simplex], axis=0)
-                u, v = centroid
-                depth = self.latest_depth[int(v), int(u)]
-                if np.isnan(depth) or depth <= 0 or depth > 10:  # Adjust threshold as needed
-                    continue  # Skip invalid depth values
-
-                # The original deprojection assumed a standard CV camera frame (Z-fwd, X-right, Y-down).
-                # However, many robotics systems and simulators use a different frame (X-fwd, Y-left, Z-up).
-                # We'll convert the pixel coordinates into this robotics-standard frame.
-                X_cam = depth
-                Y_cam = -(u - self.cx) * depth / self.fx
-                Z_cam = -(v - self.cy) * depth / self.fy
-                P_camera = np.array([X_cam, Y_cam, Z_cam])
-
-                # Convert axis-angle to rotation matrix
-                axis = np.array([self.pib_pos.x_axis, self.pib_pos.y_axis, self.pib_pos.z_axis])
-                angle = self.pib_pos.rotation
-                r = R.from_rotvec(axis * angle)
-                R_matrix = r.as_matrix()
-
-                # Camera position in world coordinates
-                T = np.array([self.pib_pos.x, self.pib_pos.y, self.pib_pos.z])
-
-                # Transform point from camera to world coordinates
-                P_world = R_matrix @ P_camera + T
-
-                if P_world[2] < 0.2:
-                    world_points.append(P_world)
-                    valid_simplices.append(simplex)
-                    valid_centers.append(centroid)
-
-            # Draw filtered triangles
-            for simplex in valid_simplices:
-                pts = all_points[simplex].astype(int)
-                cv2.polylines(resized_image, [pts], isClosed=True, color=(255, 0, 255), thickness=2)
-
-            # Draw numbers for filtered triangles
-            for i, center in enumerate(valid_centers):
-                c = tuple(np.round(center).astype(int))
-                cv2.putText(
-                    resized_image,
-                    str(i),
-                    c,
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,  # smaller font size
-                    (0, 255, 255),
-                    1,  # thinner line for less bold
-                    cv2.LINE_AA
-                )
-
-            self.world_points = np.array(world_points)
-            self.triangle_centers = np.array(valid_centers)
-            self.tri.simplices = np.array(valid_simplices)
-
-            # Store the latest preprocessed image
-            self.latest_preprocessed = resized_image.copy()
-
-            self.is_image_processed = True
-            
 
     def show_grid_image(self, grid_cells: list[int]):
         """
@@ -489,26 +398,6 @@ Always provide both text responses for conversation and appropriate function cal
         
         return image_file
     
-    def get_coords_from_grid(self, grid_num: int) -> tuple:
-        img_h, img_w = self.latest_image.shape[:2]
-        num_cols = self.num_cols
-        num_rows = self.num_rows
-
-        col = grid_num % num_cols
-        row = grid_num // num_cols
-
-        world_min_x = self.boundaries["top_left"][0]
-        world_max_x = self.boundaries["bottom_right"][0]
-        world_max_y = self.boundaries["top_left"][1]
-        world_min_y = self.boundaries["bottom_right"][1]
-
-        world_interval_x = (world_max_x - world_min_x) / num_cols
-        world_interval_y = (world_max_y - world_min_y) / num_rows
-
-        spawn_x = world_min_x + (col + 0.5) * world_interval_x
-        spawn_y = world_max_y - (row + 0.5) * world_interval_y
-
-        return spawn_x, spawn_y
 
     def spawn_robot(self, robot_name: str, grid_cell: int, behavior: str):
         """

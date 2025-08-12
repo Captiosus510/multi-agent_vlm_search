@@ -15,6 +15,7 @@ class Navigator(Node):
         self.robot_turn_speed = self.get_parameter('robot_turn_speed').get_parameter_value().double_value
         self.behavior = self.get_parameter('behavior').get_parameter_value().string_value
 
+        # self.goal_position = self.create_subscription(Twist, f'/{self.robot_name}/goal_position', self.goal_callback, 10)
         self.publisher_ = self.create_publisher(Twist, f'/{self.robot_name}/cmd_vel', 10)
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
