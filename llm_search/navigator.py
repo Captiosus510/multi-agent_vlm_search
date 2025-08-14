@@ -36,7 +36,7 @@ class Navigator(Node):
         # Path following state
         self.path = []
         self.current_waypoint_index = 0
-        self.waypoint_tolerance = 0.3  # Distance tolerance for reaching waypoint
+        self.waypoint_tolerance = 0.35  # Distance tolerance for reaching waypoint
         self.angle_tolerance = 0.1  # Angle tolerance in radians (~5.7 degrees)
         self.following_path = False
         
@@ -47,7 +47,7 @@ class Navigator(Node):
         # Control parameters
         self.max_linear_speed = self.robot_speed
         self.max_angular_speed = self.robot_turn_speed
-        self.linear_kp = 1.0  # Proportional gain for linear velocity
+        self.linear_kp = 1.5  # Proportional gain for linear velocity
         self.angular_kp = 2.0  # Proportional gain for angular velocity
         
         # Smoothing parameters
@@ -69,7 +69,7 @@ class Navigator(Node):
 
     def imu_callback(self, msg):
         """Update robot's current orientation from IMU"""
-        self.current_yaw = self.quaternion_to_yaw(msg.orientation)
+        self.current_yaw = msg.orientation.z  # Assuming z is the yaw angle in radians
 
     def quaternion_to_yaw(self, q):
         """Convert quaternion to yaw angle in radians"""
@@ -126,7 +126,7 @@ class Navigator(Node):
             self.get_logger().warn("Received empty path")
 
     def follow_path_smooth(self):
-        """Follow the path with smooth control using IMU orientation"""
+        """Follow the path with smooth control using IMU orientation - anti-overshoot version"""
         msg = Twist()
         
         if self.current_waypoint_index >= len(self.path):
@@ -152,14 +152,33 @@ class Navigator(Node):
             # Calculate angle error (shortest path)
             angle_error = self.normalize_angle(desired_yaw - self.current_yaw)
             
-            self.get_logger().debug(f"Waypoint {self.current_waypoint_index}: "
-                                  f"distance={distance_to_target:.2f}m, "
-                                  f"angle_error={math.degrees(angle_error):.1f}°")
+            self.get_logger().info(f"Waypoint {self.current_waypoint_index}: "
+                                  f"distance={distance_to_target:.3f}m, "
+                                  f"angle_error={math.degrees(angle_error):.1f}°, "
+                                  f"pos=({self.current_position['x']:.2f}, {self.current_position['y']:.2f})")
             
-            # Check if we've reached the current waypoint
-            if distance_to_target < self.waypoint_tolerance:
-                self.get_logger().info(f"Reached waypoint {self.current_waypoint_index}")
+            # PREDICTIVE WAYPOINT DETECTION - Check if we'll overshoot
+            # Calculate where robot will be in next time step
+            dt = 0.1  # Timer period
+            predicted_x = self.current_position['x'] + self.prev_linear_vel * math.cos(self.current_yaw) * dt
+            predicted_y = self.current_position['y'] + self.prev_linear_vel * math.sin(self.current_yaw) * dt
+            
+            # Distance to waypoint from predicted position
+            predicted_dx = target_x - predicted_x
+            predicted_dy = target_y - predicted_y
+            predicted_distance = math.sqrt(predicted_dx*predicted_dx + predicted_dy*predicted_dy)
+            
+            # Check if we're about to overshoot or already very close
+            will_overshoot = (predicted_distance > distance_to_target and distance_to_target < 0.4)
+            
+            if distance_to_target < self.waypoint_tolerance or will_overshoot:
+                self.get_logger().info(f"Waypoint {self.current_waypoint_index} reached! "
+                                     f"(distance={distance_to_target:.3f}, predicted={predicted_distance:.3f})")
                 self.current_waypoint_index += 1
+                
+                # Immediate velocity reduction when switching waypoints
+                self.prev_linear_vel *= 0.5
+                self.prev_angular_vel *= 0.5
                 
                 if self.current_waypoint_index >= len(self.path):
                     target_linear = 0.0
@@ -167,37 +186,74 @@ class Navigator(Node):
                     self.following_path = False
                     self.get_logger().info("Final destination reached!")
                 else:
-                    # Continue to next waypoint - recalculate for smooth transition
+                    # Continue to next waypoint
                     return self.follow_path_smooth()
             else:
-                # Calculate control commands
+                # CONSERVATIVE MOTION CONTROL
                 
-                # Angular velocity - proportional to angle error
+                # Angular control - proportional to angle error
                 target_angular = self.angular_kp * angle_error
                 
-                # Limit angular velocity
-                target_angular = max(-self.max_angular_speed, 
-                                   min(self.max_angular_speed, target_angular))
+                # Reduce angular velocity when very close to prevent spinning
+                if distance_to_target < 0.5:
+                    target_angular *= min(1.0, distance_to_target / 0.5)
                 
-                # Linear velocity - reduce when turning
-                angle_factor = max(0.1, 1.0 - abs(angle_error) / math.pi)  # Slow down when turning
-                distance_factor = min(1.0, distance_to_target / 1.0)  # Slow down when close
-                
-                target_linear = self.linear_kp * self.max_linear_speed * angle_factor * distance_factor
-                
-                # Only move forward if roughly facing the target
-                if abs(angle_error) > math.pi/2:  # If facing away, just turn
-                    target_linear = 0.0  # stop forward motion completely
+                # Linear velocity - VERY conservative approach
+                if abs(angle_error) < math.pi/6:  # Within 30 degrees - more restrictive
+                    # Distance-based speed control with early braking
+                    if distance_to_target > 1.0:
+                        # Far away - use moderate speed
+                        speed_factor = 0.8
+                    elif distance_to_target > 0.5:
+                        # Medium distance - start slowing down
+                        speed_factor = 0.4 + 0.4 * (distance_to_target - 0.5) / 0.5
+                    else:
+                        # Very close - crawl speed
+                        speed_factor = 0.2 + 0.2 * (distance_to_target / 0.5)
+                    
+                    # Angle-based reduction
+                    angle_factor = max(0.3, 1.0 - abs(angle_error) / (math.pi/6))
+                    
+                    target_linear = self.linear_kp * self.max_linear_speed * speed_factor * angle_factor
+                    
+                elif abs(angle_error) < math.pi/3:  # 30-60 degrees - turn while moving slowly
+                    target_linear = 0.05  # Very slow forward motion
+                else:
+                    # Large angle error - just turn in place
+                    target_linear = 0.0
+    
+        # AGGRESSIVE VELOCITY SMOOTHING - prevent sudden changes
+        # Much more conservative smoothing to prevent overshooting
+        smoothing_factor = 0.95  # Very high smoothing
         
-        # Apply velocity smoothing to avoid jerky motion
-        smooth_linear = (self.vel_smoothing_factor * self.prev_linear_vel + 
-                        (1 - self.vel_smoothing_factor) * target_linear)
-        smooth_angular = (self.vel_smoothing_factor * self.prev_angular_vel + 
-                         (1 - self.vel_smoothing_factor) * target_angular)
+        # Apply smoothing
+        smooth_linear = (smoothing_factor * self.prev_linear_vel + 
+                        (1 - smoothing_factor) * target_linear)
+        smooth_angular = (smoothing_factor * self.prev_angular_vel + 
+                         (1 - smoothing_factor) * target_angular)
+        
+        # Additional acceleration limiting
+        max_linear_accel = 0.2  # Very conservative acceleration
+        max_angular_accel = 0.5
+        dt = 0.1
+        
+        # Limit linear acceleration
+        linear_change = smooth_linear - self.prev_linear_vel
+        if abs(linear_change) > max_linear_accel * dt:
+            smooth_linear = self.prev_linear_vel + (max_linear_accel * dt * (1 if linear_change > 0 else -1))
+        
+        # Limit angular acceleration  
+        angular_change = smooth_angular - self.prev_angular_vel
+        if abs(angular_change) > max_angular_accel * dt:
+            smooth_angular = self.prev_angular_vel + (max_angular_accel * dt * (1 if angular_change > 0 else -1))
         
         # Store for next iteration
         self.prev_linear_vel = smooth_linear
         self.prev_angular_vel = smooth_angular
+        
+        # Final clamping
+        smooth_linear = max(0.0, min(self.max_linear_speed, smooth_linear))
+        smooth_angular = max(-self.max_angular_speed, min(self.max_angular_speed, smooth_angular))
         
         # Set message
         msg.linear.x = smooth_linear

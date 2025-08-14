@@ -27,7 +27,9 @@ from geometry_msgs.msg import PointStamped
 from functools import partial
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import Imu
 from builtin_interfaces.msg import Time 
+import math
 
 class VLMServices(Node):
     
@@ -128,7 +130,8 @@ Always provide both text responses for conversation and appropriate function cal
         self.robot_names_publisher = self.create_publisher(String, 'robot_names', 10)
         self.robot_names = [f'tb{i}' for i in range(1, self.num_robots + 1)]
         self.robot_gps_subs = {name: self.create_subscription(PointStamped, f'/{name}/p3d_gps', partial(self.gps_callback, name), 10) for name in self.robot_names}
-        self.robot_positions = {name: {'x': 0.0, 'y': 0.0, 'z': 0.0} for name in self.robot_names}
+        self.robot_orientation_subs = {name: self.create_subscription(Imu, f'/{name}/imu', partial(self.orientation_callback, name), 10) for name in self.robot_names}
+        self.robot_positions = {name: {'x': 0.0, 'y': 0.0, 'z': 0.0, 'heading': 0.0} for name in self.robot_names}
         self.robot_path_publishers = {name: self.create_publisher(Path, f'/{name}/path', 10) for name in self.robot_names}
 
         # Start conversation in a separate thread so ROS can keep spinning
@@ -332,6 +335,38 @@ Always provide both text responses for conversation and appropriate function cal
             # self.get_logger().info(f"Updated GPS for {robot_name}: {self.robot_positions[robot_name]}")
         else:
             self.get_logger().warn(f"Received GPS data for unknown robot: {robot_name}")
+    
+    def orientation_callback(self, robot_name: str, msg: Imu):
+        """
+        Callback to handle orientation data for each robot.
+        """
+        if robot_name in self.robot_positions:
+            # Convert quaternion to yaw angle
+            yaw = msg.orientation.z  # Assuming z is the yaw angle in radians
+            self.robot_positions[robot_name]['heading'] = yaw
+
+    def quaternion_to_yaw(self, q):
+        """Convert quaternion to yaw angle in radians"""
+        # First, normalize the quaternion
+        norm = math.sqrt(q.w*q.w + q.x*q.x + q.y*q.y + q.z*q.z)
+        
+        if norm < 1e-6:  # Handle near-zero quaternions
+            self.get_logger().warn("Quaternion norm is nearly zero, using default orientation")
+            return 0.0
+        
+        # Normalize quaternion components
+        qw = q.w / norm
+        qx = q.x / norm
+        qy = q.y / norm  
+        qz = q.z / norm
+        
+        # Convert normalized quaternion to yaw
+        yaw = math.atan2(
+            2.0 * (qw * qz + qx * qy),
+            1.0 - 2.0 * (qy * qy + qz * qz)
+        )
+    
+        return yaw
 
     def image_preprocess(self):
         """
@@ -583,7 +618,15 @@ Always provide both text responses for conversation and appropriate function cal
                         plt.text(pos['x'] + 0.15, pos['y'] + 0.15, robot_name, 
                                 fontsize=12, fontweight='bold', color='white',
                                 bbox=dict(boxstyle="round,pad=0.3", facecolor=color, alpha=0.8))
-                        
+                        # Add orientation arrow if heading data is available
+                        if 'heading' in pos and pos['heading'] is not None:
+                            heading = pos['heading']
+                            arrow_length = 0.4
+                            dx = arrow_length * np.cos(heading)
+                            dy = arrow_length * np.sin(heading)
+                            plt.arrow(pos['x'], pos['y'], dx, dy,
+                                    head_width=0.08, head_length=0.08, 
+                                    fc=color, ec='black', alpha=0.9, linewidth=2)
                         # Find and highlight the closest triangle
                         if hasattr(self, 'centroids_world_xy'):
                             distances = np.linalg.norm(self.centroids_world_xy - np.array([pos['x'], pos['y']]), axis=1)
@@ -618,7 +661,7 @@ Always provide both text responses for conversation and appropriate function cal
                 plt.tight_layout()
                 plt.draw()
                 plt.pause(0.001)  # Non-blocking update
-            
+                    
 
     def upload_image_to_openai(self, image_cv2: np.ndarray):
         """
@@ -640,6 +683,7 @@ Always provide both text responses for conversation and appropriate function cal
             image_file = self.interface.client.files.create(file=f, purpose='vision')
         
         return image_file
+    
     
 
     
