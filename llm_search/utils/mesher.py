@@ -124,4 +124,4 @@ def inverse_mesh(mask_world_points, verts, triangles, triangle_ids, fx, fy, cx, 
     centroids_img = np.full((len(triangles_proj), 2), np.nan, dtype=float)
     centroids_img[valid_tri] = pts_img[triangles_proj[valid_tri]].mean(axis=1)
 
-    return ids_proj, triangles_proj, centroids_img
+    return ids_proj, triangles_proj, centroids_img, u, v

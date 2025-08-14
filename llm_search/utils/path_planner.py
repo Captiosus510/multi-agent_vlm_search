@@ -81,12 +81,7 @@ def bridge_components(adjacency_list, centroids_world_xy, polygon, margin=1e-3):
         # Recompute components
         comps = connected_components(adjacency_list)
 
-def build_adjacency_list(polygon, tris, ids, u, v, valid_vertex, centroids_world_xy):
-    # Image-space centroids for each kept triangle (NaN if any vertex invalid)
-    pts_img = np.stack([u, v], axis=1)
-    valid_tri = np.all(valid_vertex[tris], axis=1)
-    centroids_img = np.full((len(tris), 2), np.nan, dtype=float)
-    centroids_img[valid_tri] = pts_img[tris[valid_tri]].mean(axis=1)
+def build_adjacency_list(polygon, tris, ids, centroids_img, centroids_world_xy):
 
     # World-space centroids (from earlier computation)
     centroids_world = centroids_world_xy  # shape (Nk, 2)
@@ -122,7 +117,7 @@ def a_star_planner(start, goal, adjacency_list):
     
     :param start: Starting node ID
     :param goal: Goal node ID
-    :param adjacency_list: Dictionary where keys are node IDs and values are sets of connected node IDs
+    :param adjacency_list: Dictionary where keys are node IDs and values are AStarNode objects
     :return: List of node IDs representing the path from start to goal, or None if no path exists
     """
 
@@ -132,7 +127,7 @@ def a_star_planner(start, goal, adjacency_list):
     g_score = {node: float('inf') for node in adjacency_list}
     g_score[start] = 0
     f_score = {node: float('inf') for node in adjacency_list}
-    f_score[start] = heuristic(start, goal)
+    f_score[start] = heuristic(start, goal, adjacency_list)
 
     while not open_set.empty():
         current = open_set.get()[1]
@@ -140,26 +135,30 @@ def a_star_planner(start, goal, adjacency_list):
         if current == goal:
             return reconstruct_path(came_from, current)
 
-        for neighbor in adjacency_list[current]:
+        for neighbor_node in adjacency_list[current].edges:
+            neighbor = neighbor_node.id
             tentative_g_score = g_score[current] + 1  # Assuming uniform cost for edges
 
             if tentative_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g_score
-                f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal)
+                f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal, adjacency_list)
                 open_set.put((f_score[neighbor], neighbor))
 
     return None  # No path found
 
-def heuristic(node_a, node_b):
+def heuristic(node_a_id, node_b_id, adjacency_list):
     """
-    Heuristic function for A* algorithm. Here we use a simple difference as a placeholder.
+    Heuristic function for A* algorithm using Euclidean distance.
     
-    :param node_a: First node ID
-    :param node_b: Second node ID
+    :param node_a_id: First node ID
+    :param node_b_id: Second node ID
+    :param adjacency_list: Dictionary mapping node IDs to AStarNode objects
     :return: Estimated cost from node_a to node_b in squared euclidean distance
     """
-    node_a_x, node_a_y = node_a.world_point  # Assuming node IDs are tuples (x, y)
+    node_a = adjacency_list[node_a_id]
+    node_b = adjacency_list[node_b_id]
+    node_a_x, node_a_y = node_a.world_point
     node_b_x, node_b_y = node_b.world_point
     dist = (node_a_x - node_b_x) ** 2 + (node_a_y - node_b_y) ** 2
     return dist

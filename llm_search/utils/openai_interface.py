@@ -14,8 +14,8 @@ class SetGoalCall(BaseModel):
     name: str = "set_goal"
     prompts: str
 
-class SpawnRobotCall(BaseModel):
-    name: str = "spawn_robot"
+class DirectRobotCall(BaseModel):
+    name: str = "direct_robot"
     grid_cell: int
     robot_name: str
     behavior: BehaviorType
@@ -35,8 +35,8 @@ class Conversation(BaseModel):
     chain_of_thought: List[ChainOfThoughtStep]
     take_picture: Optional[TakePictureCall] = None
     show_grid: Optional[ShowGridCall] = None
-    set_goal: Optional[SetGoalCall] = None  
-    spawn_robot: Optional[SpawnRobotCall] = None
+    set_goal: Optional[SetGoalCall] = None
+    direct_robot: Optional[DirectRobotCall] = None
     stop: Optional[StopCall] = None
 
 class OpenAIInterface:

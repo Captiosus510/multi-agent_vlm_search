@@ -18,11 +18,33 @@ def launch_setup(context, *args, **kwargs):
     robot_turn_speed = LaunchConfiguration('robot_turn_speed').perform(context)
     behavior = LaunchConfiguration('behavior').perform(context)
 
+    # Read URDF content
+    with open(robot_description_path, 'r') as urdf_file:
+        robot_description_content = urdf_file.read()
+
     robot_controller = WebotsController(
         robot_name=robot_name,
         parameters=[
-            {'robot_description': robot_description_path},
+            {'robot_description': robot_description_content},
+            {'use_sim_time': True},
+            {'publish_tf': True},
+            {'publish_odom': True},
+            {'tf_prefix': robot_name},
         ]
+    )
+
+    # Add static transform publisher to connect robot to world frame
+    static_tf_publisher = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name=f'{robot_name}_static_tf',
+        arguments=[
+            '0', '0', '0',  # x, y, z
+            '0', '0', '0', '1',  # qx, qy, qz, qw (identity quaternion)
+            'map',  # parent frame
+            f'{robot_name}/base_link'  # child frame - directly to base_link
+        ],
+        output='screen'
     )
 
     detector = Node(
@@ -62,7 +84,8 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         robot_controller,
-        detector,
+        static_tf_publisher,
+        # detector,
         camera,
         navigator,
         launch.actions.RegisterEventHandler(

@@ -3,7 +3,8 @@ import pathlib
 import launch
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions.path_join_substitution import PathJoinSubstitution
 from launch_ros.actions import Node
@@ -62,12 +63,26 @@ def generate_launch_description():
         ]
     )
 
+    # include robot launch files
+    spawn_robot = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            os.path.join(get_package_share_directory('llm_search'), 'launch', 'spawn_robot.py')
+        ]),
+        launch_arguments={
+            'robot_name': 'tb1',
+            'robot_speed': '0.25',
+            'robot_turn_speed': '0.5',
+            'behavior': 'monitor'
+        }.items()
+    )
+
     return LaunchDescription([
         webots,
         webots._supervisor,
         global_cam,
         all_robo_cams,
         camera_viewer_global,
+        spawn_robot,
         # global_mapper,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore

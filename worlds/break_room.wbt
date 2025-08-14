@@ -36,7 +36,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.16324298345354846 0.9136019513253099 0.3724019372771447 0.8947244000888547
-  position -3.048538411357131 2.103917869130652 4.622603354485229
+  position -4.5449595257525965 1.0124574219707352 5.606469783389181
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -1137,4 +1137,9 @@ Robot {
   battery [
     0
   ]
+}
+Turtlebot4 {
+  translation 0.77 3.94 0
+  name "tb1"
+  controller "<extern>"
 }

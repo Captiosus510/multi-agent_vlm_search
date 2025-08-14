@@ -5,8 +5,6 @@ from cv_bridge import CvBridge
 import cv2
 from ultralytics import YOLO
 from std_msgs.msg import String, Empty
-# from llm_search_interfaces.srv import Analysis
-from llm_search.utils import SigLipInterface
 import numpy as np
 
 class CameraViewer(Node):
