@@ -35,8 +35,8 @@ WorldInfo {
   title "Break Room"
 }
 Viewpoint {
-  orientation -0.16324298345354846 0.9136019513253099 0.3724019372771447 0.8947244000888547
-  position -4.5449595257525965 1.0124574219707352 5.606469783389181
+  orientation -0.3652063386106635 -0.1462994785440291 0.9193589031582489 3.847342087662644
+  position 2.46913782934418 2.673763130695584 4.638075642108446
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -1141,5 +1141,10 @@ Robot {
 Turtlebot4 {
   translation 0.77 3.94 0
   name "tb1"
+  controller "<extern>"
+}
+Turtlebot4 {
+  translation 0.87 -0.02 0
+  name "tb2"
   controller "<extern>"
 }

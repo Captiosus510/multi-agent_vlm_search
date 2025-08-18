@@ -98,7 +98,7 @@ class Navigator(Node):
             if self.behavior == 'monitor':
                 # msg.linear.x = self.robot_speed * 0.5  # Slower for monitoring
                 msg.linear.x = 0.0
-                msg.angular.z = self.robot_turn_speed * 0.3
+                msg.angular.z = self.robot_turn_speed
             elif self.behavior == 'search':
                 msg.linear.x = self.robot_speed * 0.7
                 msg.angular.z = self.robot_turn_speed * 0.5

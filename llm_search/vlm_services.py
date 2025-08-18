@@ -21,7 +21,7 @@ from scipy.spatial import Delaunay
 from ultralytics import SAM
 from llm_search.utils.vector import Vector7D
 from llm_search.utils.mesher import generate_mesh, inverse_mesh
-from llm_search.utils.path_planner import *
+from llm_search.utils.graphing import *
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import PointStamped
 from functools import partial
@@ -30,6 +30,7 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Imu
 from builtin_interfaces.msg import Time 
 import math
+from llm_search.utils.mapf import CBSPlanner
 
 class VLMServices(Node):
     
@@ -69,16 +70,17 @@ For monitoring:
     ONLY USE STOP WHEN THE USER SAYS THEY ARE DONE.
 
 Function usage:
-- take_picture: No parameters needed
-- set_goal: Requires prompts (string) - comma-separated list
-- show_grid: Requires grid_cells (list of integers) - list of grid cells that you selected to direct robots to
-- direct_robot: Requires grid_cell (int), robot_name (string), behavior ("MONITOR" or "SEARCH")
+- take_picture: No parameters needed (after using this function you will be prompted again, no user input in between)
+- set_goal: Requires prompts (string) - comma-separated list (after using this function you will be prompted again, no user input in between)
+- show_grid: Requires triangle_ids (list of integers) - list of triangle IDs that you selected to direct robots to
+- direct_robot: Requires triangle_id (int), robot_name (string), behavior ("MONITOR" or "SEARCH")
 - stop: No parameters needed
 
 Remember:
-- DO NOT DIRECT ROBOTS TO UNFEASIBLE GRIDS (e.g., walls, tables).
-- CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE DIRECTING ROBOTS
-- DO NOT DIRECT A ROBOT AGAIN AFTER IT HAS BEEN DIRECTED TO A LOCATION
+- When you call functions, you will be prompted again for the next step without user input in between.
+- You may redirect the same robot as many times as needed.
+- DO NOT DIRECT ROBOTS TO UNFEASIBLE TRIANGLES (e.g., walls, tables).
+- CHECK WITH THE USER ABOUT THE TRIANGLE ID REASONING BEFORE DIRECTING ROBOTS
 - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
 - Robot names follow the pattern: tb1, tb2, tb3, etc.
 - REASON IN MULTIPLE STEPS: Provide a chain_of_thought array with multiple reasoning steps, breaking down your thinking process into distinct steps.
@@ -87,13 +89,11 @@ Always provide both text responses for conversation and appropriate function cal
 """
     def __init__(self):
         super().__init__('vlm_services')
-        self.interface = OpenAIInterface(self.system_prompt, model="gpt-4.1", max_messages=100)
+        self.interface = OpenAIInterface(self.system_prompt, model="gpt-5", max_messages=100)
         self.get_logger().info('VLM Services Node has been started')
 
         self.conversation_state = False
         self.parsed_prompt = None
-        self.declare_parameter('input_prompt', 'User forgot to specify input prompt, begin the conversation with the user.')
-        self.input_prompt = self.get_parameter('input_prompt').get_parameter_value().string_value
         self.declare_parameter('num_robots', 1)
         self.num_robots = self.get_parameter('num_robots').get_parameter_value().integer_value
 
@@ -156,17 +156,16 @@ Always provide both text responses for conversation and appropriate function cal
         Interactive conversation with GPT using structured output.
         """
         self.conversation_state = True
-        with self.interface_lock:
-            self.interface.add_message("user", self.input_prompt)
 
         while True:
             reminders = f"""
-            - DO NOT DIRECT ROBOTS TO UNFEASIBLE GRIDS (e.g., walls, tables).
-            - CHECK WITH THE USER ABOUT THE GRID CELL REASONING BEFORE DIRECTING ROBOTS
-            - DO NOT DIRECT A ROBOT AGAIN AFTER IT HAS BEEN DIRECTED TO A LOCATION
+            - When you call functions, you will be prompted again for the next step without user input in between.
+            - DO NOT DIRECT ROBOTS TO UNFEASIBLE TRIANGLES (e.g., walls, tables).
+            - CHECK WITH THE USER ABOUT THE TRIANGLE ID REASONING BEFORE DIRECTING ROBOTS
+            - YOU MAY REDIRECT THE SAME ROBOT AS MANY TIMES AS NEEDED
             - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
-            - ONLY ASK FOR CONFIRMATION ONCE FOR THE GRID CELLS
-            - DO NOT SHOW GRID CELL NUMBERS, JUST THE IMAGE.
+            - ONLY ASK FOR CONFIRMATION ONCE FOR THE TRIANGLE IDS
+            - DO NOT SHOW TRIANGLE ID NUMBERS, JUST THE IMAGE.
             - There are currently only {self.num_robots} robots available in the environment.
             - The robot names you may use are: {', '.join(self.robot_names)}.   
             - REASON IN MULTIPLE STEPS: Provide a chain_of_thought array with multiple reasoning steps, breaking down your thinking process into distinct steps.
@@ -175,7 +174,8 @@ Always provide both text responses for conversation and appropriate function cal
                 self.interface.add_message("system", reminders)
                 
                 # Get structured response
-                response = self.interface.get_response()
+                response, model = self.interface.get_response()
+            self.get_logger().info(f"GPT model used: {model}")
             # Display thinking
             if response and hasattr(response, 'chain_of_thought') and response.chain_of_thought:
                 print(f"\n🤔 GPT thoughts:")
@@ -194,13 +194,10 @@ Always provide both text responses for conversation and appropriate function cal
                 continue
             elif response and hasattr(response, 'show_grid') and response.show_grid:
                 self.get_logger().info("Showing grid image to the user.")
-                self.show_grid_image(response.show_grid.grid_cells)
+                self.show_grid_image(response.show_grid.triangle_ids)
             elif response and hasattr(response, 'direct_robot') and response.direct_robot:
-                self.direct_robot(
-                    response.direct_robot.grid_cell,
-                    response.direct_robot.robot_name,
-                    response.direct_robot.behavior.value
-                )
+                goal_assignments = {assignment.robot_name: assignment.triangle_id for assignment in response.direct_robot.assignments}
+                self.plan_multi_agent(goal_assignments, weight=1.0, goal_wait=0, max_time=300)
                 continue
             elif response and hasattr(response, 'stop') and response.stop:
                 self.get_logger().info("Conversation ended by GPT.")
@@ -224,7 +221,7 @@ Always provide both text responses for conversation and appropriate function cal
             # handle interrupt (queue being filled with search results)
             if not self.search_result_queue.empty() and enable_interrupt: 
                 self.process_search_results()
-                response = self.interface.get_response()  # Get the latest response to update the conversation
+                response, model = self.interface.get_response()  # Get the latest response to update the conversation
                 # Display the text response
                 if response and hasattr(response, 'text') and response.text:
                     print(f"\n🤖 GPT says: {response.text}")
@@ -463,45 +460,87 @@ Always provide both text responses for conversation and appropriate function cal
 
         return tri_id
     
-    def direct_robot(self, grid_cell: int, robot_name: str, behavior: str):
+    # def direct_robot(self, triangle_id: int, robot_name: str, behavior: str):
+    #     """
+    #     Direct a robot to a specific triangle with the given behavior.
+    #     """
+    #     if robot_name not in self.robot_names:
+    #         self.get_logger().error(f"Robot {robot_name} is not available.")
+    #         return
+
+    #     if behavior not in ["monitor", "search"]:
+    #         self.get_logger().error(f"Invalid behavior: {behavior}. Must be 'monitor' or 'search'.")
+    #         return
+        
+    #     # Find the nearest triangle to the robot's current position
+    #     tri_id = self.find_nearest_triangle(robot_name)
+    #     if tri_id is None:
+    #         self.get_logger().error(f"Could not find nearest triangle for robot {robot_name}.")
+    #         return
+        
+    #     # Perform A*
+    #     path = a_star_planner(tri_id, triangle_id, self.adjacency_list)
+        
+    #     # Log the action
+    #     self.get_logger().info(f"Directing {robot_name} to triangle {triangle_id} with behavior {behavior}.")
+
+    #     # print the path for debugging
+    #     if path is not None:
+    #         self.get_logger().info(f"Path found for {robot_name} to triangle {triangle_id}: {path}")
+
+    #         # Convert to ROS Path message
+    #         path_msg = self.create_path_message(path, robot_name, behavior)
+    #         self.robot_path_publishers[robot_name].publish(path_msg)
+
+    #         self.interface.add_message("system", f"SUCCESS! Directing {robot_name} to triangle {triangle_id} with behavior {behavior}.")
+    #     else:
+    #         self.get_logger().info(f"No path found for {robot_name} to triangle {triangle_id}.")
+    #         self.interface.add_message("system", f"ERROR: No path found for {robot_name} to triangle {triangle_id}.")
+    #         return
+        
+    def plan_multi_agent(self, goal_assignments: dict, weight: float = 1.0, goal_wait: int = 0, max_time: int = 300):
         """
-        Direct a robot to a specific grid cell with the given behavior.
+        goal_assignments: {robot_name: goal_triangle_id}
+        weight: 1.0 => optimal CBS, >1.0 => ECBS bounded suboptimal (approx)
+        goal_wait: extra wait steps allowed at goal (default = number of robots)
+        max_time: hard cap on per-agent planning horizon
         """
-        if robot_name not in self.robot_names:
-            self.get_logger().error(f"Robot {robot_name} is not available.")
+        if not hasattr(self, 'adjacency_list'):
+            self.get_logger().error("Adjacency list not built yet.")
+            return
+        robots = list(goal_assignments.keys())
+        # Start triangles
+        starts = {}
+        for r in robots:
+            tri = self.find_nearest_triangle(r)
+            if tri is None:
+                self.get_logger().error(f"Cannot find start triangle for {r}")
+                return
+            starts[r] = tri
+        goals = goal_assignments
+
+        if goal_wait is None:
+            goal_wait = max(3, len(robots))  # small buffer
+
+        planner = CBSPlanner(self.adjacency_list,
+                             goal_wait=goal_wait,
+                             weight=weight,
+                             max_time=max_time,
+                             logger=self.get_logger())
+
+        success, paths = planner.solve(robots, starts, goals)
+        if not success:
+            self.get_logger().error("CBS planning failed to find conflict-free solution.")
             return
 
-        if behavior not in ["monitor", "search"]:
-            self.get_logger().error(f"Invalid behavior: {behavior}. Must be 'monitor' or 'search'.")
-            return
-        
-        # Find the nearest triangle to the robot's current position
-        tri_id = self.find_nearest_triangle(robot_name)
-        if tri_id is None:
-            self.get_logger().error(f"Could not find nearest triangle for robot {robot_name}.")
-            return
-        
-        # Perform A*
-        path = a_star_planner(tri_id, grid_cell, self.adjacency_list)
-        
-        # Log the action
-        self.get_logger().info(f"Directing {robot_name} to grid cell {grid_cell} with behavior {behavior}.")
+        # Publish each path as Path message (convert triangles to world coords)
+        for r, tri_path in paths.items():
+            path_msg = self.create_path_message(tri_path, r, behavior="monitor")
+            self.robot_path_publishers[r].publish(path_msg)
+        self.get_logger().info(f"CBS planning success. Published synchronized paths for {len(paths)} robots.")
 
-        # print the path for debugging
-        if path is not None:
-            self.get_logger().info(f"Path found for {robot_name} to grid cell {grid_cell}: {path}")
-
-            # Convert to ROS Path message
-            path_msg = self.create_path_message(path, robot_name, behavior)
-            self.robot_path_publishers[robot_name].publish(path_msg)
-
-            self.interface.add_message("system", f"SUCCESS! Directing {robot_name} to grid cell {grid_cell} with behavior {behavior}.")
-        else:
-            self.get_logger().info(f"No path found for {robot_name} to grid cell {grid_cell}.")
-            self.interface.add_message("system", f"ERROR: No path found for {robot_name} to grid cell {grid_cell}.")
-            return
         
-    def create_path_message(self, triangle_path: list, robot_name: str, behavior: str) -> Path:
+    def create_path_message(self, triangle_path: list, robot_name: str, behavior: str = "default") -> Path:
         """
         Convert a list of triangle IDs to a ROS Path message.
         """
@@ -542,7 +581,7 @@ Always provide both text responses for conversation and appropriate function cal
         self.get_logger().info(f"Created path message with {len(path_msg.poses)} waypoints for {robot_name}")
         return path_msg
     
-    def show_grid_image(self, grid_cells: list[int]):
+    def show_grid_image(self, triangle_ids: list[int]):
         """
         Display the grid image in a separate window, highlighting selected cells.
         """
@@ -556,11 +595,11 @@ Always provide both text responses for conversation and appropriate function cal
             overlay = highlight_img.copy()
 
             # Use existing projected data - no need to recalculate
-            for grid_cell in grid_cells:
-                # Find the triangle in tri_proj that corresponds to this grid_cell
+            for triangle_id in triangle_ids:
+                # Find the triangle in tri_proj that corresponds to this triangle_id
                 triangle_idx = None
-                for i, triangle_id in enumerate(self.ids_proj):
-                    if triangle_id == grid_cell:
+                for i, proj_triangle_id in enumerate(self.ids_proj):
+                    if proj_triangle_id == triangle_id:
                         triangle_idx = i
                         break
                 

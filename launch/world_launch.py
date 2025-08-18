@@ -63,27 +63,27 @@ def generate_launch_description():
         ]
     )
 
+    robot_names = ['tb1', 'tb2']
     # include robot launch files
-    spawn_robot = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(get_package_share_directory('llm_search'), 'launch', 'spawn_robot.py')
-        ]),
-        launch_arguments={
-            'robot_name': 'tb1',
-            'robot_speed': '0.25',
-            'robot_turn_speed': '0.5',
-            'behavior': 'monitor'
-        }.items()
-    )
-
+    spawn_robots = [
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(package_dir, 'launch', 'spawn_robot.py')),
+            launch_arguments={
+                'robot_name': name,
+                'robot_speed': '0.25',
+                'robot_turn_speed': '0.5',
+                'behavior': 'monitor'
+            }.items()
+        ) for name in robot_names
+    ]
     return LaunchDescription([
         webots,
         webots._supervisor,
         global_cam,
         all_robo_cams,
-        camera_viewer_global,
-        spawn_robot,
-        # global_mapper,
+        camera_viewer_global]
+        + spawn_robots
+        + [
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore
                 target_action=webots,

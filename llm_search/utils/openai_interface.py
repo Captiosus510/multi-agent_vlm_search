@@ -14,15 +14,19 @@ class SetGoalCall(BaseModel):
     name: str = "set_goal"
     prompts: str
 
+class RobotAssignment(BaseModel):
+    name: str = "robot_assignment"
+    robot_name: str
+    triangle_id: int
+    behavior: BehaviorType
+
 class DirectRobotCall(BaseModel):
     name: str = "direct_robot"
-    grid_cell: int
-    robot_name: str
-    behavior: BehaviorType
+    assignments: List[RobotAssignment]
 
 class ShowGridCall(BaseModel):
     name: str = "show_grid"
-    grid_cells: list[int]
+    triangle_ids: list[int]
 
 class StopCall(BaseModel):
     name: str = "stop"
@@ -40,7 +44,7 @@ class Conversation(BaseModel):
     stop: Optional[StopCall] = None
 
 class OpenAIInterface:
-    def __init__(self, system_prompt: str, model: str = "gpt-4o", max_messages: int = 20):
+    def __init__(self, system_prompt: str, model: str = "gpt-5", max_messages: int = 20):
         self.system_prompt = system_prompt
         self.client = OpenAI()
         self.model = model
@@ -82,6 +86,6 @@ class OpenAIInterface:
         if parsed_output is None:
             raise ValueError("No valid output received from the model.")
         self.add_message("assistant", parsed_output.text) # type: ignore
-        return parsed_output
+        return parsed_output, response.model
     
 
