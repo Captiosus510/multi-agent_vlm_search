@@ -57,7 +57,6 @@ ALLOCATION: only propose the minimum number of robots needed to achieve the task
 spread them out meaningfully.
 
 4. Confirm with the user about the grid cells you want to direct robots to. Use show_grid to show the grid image. DO NOT SHOW THE GRID CELL NUMBERS, JUST THE IMAGE. \
-   **After the user confirms the location, you MUST use the spawn_robot function. Do NOT use show_grid again after getting confirmation.**
 
 For monitoring:
 
@@ -70,7 +69,7 @@ For monitoring:
     ONLY USE STOP WHEN THE USER SAYS THEY ARE DONE.
 
 Function usage:
-- take_picture: No parameters needed (after using this function you will be prompted again, no user input in between)
+- take_picture: No parameters needed ONLY USE THIS ONCE
 - set_goal: Requires prompts (string) - comma-separated list (after using this function you will be prompted again, no user input in between)
 - show_grid: Requires triangle_ids (list of integers) - list of triangle IDs that you selected to direct robots to
 - direct_robot: Requires triangle_id (int), robot_name (string), behavior ("MONITOR" or "SEARCH")
@@ -89,7 +88,7 @@ Always provide both text responses for conversation and appropriate function cal
 """
     def __init__(self):
         super().__init__('vlm_services')
-        self.interface = OpenAIInterface(self.system_prompt, model="gpt-5", max_messages=100)
+        self.interface = OpenAIInterface(self.system_prompt, model="gpt-4.1", max_messages=100)
         self.get_logger().info('VLM Services Node has been started')
 
         self.conversation_state = False
@@ -159,11 +158,10 @@ Always provide both text responses for conversation and appropriate function cal
 
         while True:
             reminders = f"""
+            - ONLY USE AS MANY ROBOTS AS NEEDED FOR THE TASK. TRY TO BE MINIMAL.
             - When you call functions, you will be prompted again for the next step without user input in between.
             - DO NOT DIRECT ROBOTS TO UNFEASIBLE TRIANGLES (e.g., walls, tables).
-            - CHECK WITH THE USER ABOUT THE TRIANGLE ID REASONING BEFORE DIRECTING ROBOTS
             - YOU MAY REDIRECT THE SAME ROBOT AS MANY TIMES AS NEEDED
-            - YOU MUST SET A GOAL FOR THE ROBOT TO LOOK FOR EVEN FOR MONITORING BEHAVIOR
             - ONLY ASK FOR CONFIRMATION ONCE FOR THE TRIANGLE IDS
             - DO NOT SHOW TRIANGLE ID NUMBERS, JUST THE IMAGE.
             - There are currently only {self.num_robots} robots available in the environment.
@@ -188,18 +186,19 @@ Always provide both text responses for conversation and appropriate function cal
             # Handle function calls
             if response and hasattr(response, 'take_picture') and response.take_picture:
                 self.handle_take_picture()
+                self.interface.add_message("system", "Picture taken successfully. Please continue.")
                 continue
-            elif response and hasattr(response, 'set_goal') and response.set_goal:
+            if response and hasattr(response, 'set_goal') and response.set_goal:
                 self.parse_prompt(response.set_goal.prompts)
                 continue
-            elif response and hasattr(response, 'show_grid') and response.show_grid:
+            if response and hasattr(response, 'show_grid') and response.show_grid:
                 self.get_logger().info("Showing grid image to the user.")
                 self.show_grid_image(response.show_grid.triangle_ids)
-            elif response and hasattr(response, 'direct_robot') and response.direct_robot:
+            if response and hasattr(response, 'direct_robot') and response.direct_robot:
                 goal_assignments = {assignment.robot_name: assignment.triangle_id for assignment in response.direct_robot.assignments}
                 self.plan_multi_agent(goal_assignments, weight=1.0, goal_wait=0, max_time=300)
                 continue
-            elif response and hasattr(response, 'stop') and response.stop:
+            if response and hasattr(response, 'stop') and response.stop:
                 self.get_logger().info("Conversation ended by GPT.")
                 break
                 
