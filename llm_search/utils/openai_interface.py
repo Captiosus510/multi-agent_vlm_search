@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: openai_interface.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    This module provides utilities for interacting with the OpenAI API, including message formatting and response handling.
+    Also keeps track of message history and prunes when there are too many messages.
+
+    TODO: Prune based on tokens not just message count.
+"""
+
 from openai import OpenAI
 from pydantic import BaseModel
 from enum import Enum

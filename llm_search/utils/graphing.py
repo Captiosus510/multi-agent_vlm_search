@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: graphing.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    This module provides utilities for graph-based operations, including A* pathfinding and graph construction.
+    For graph components that end up disconnected, it provides methods for identifying and bridging these gaps.
+"""
+
 import numpy as np
 from queue import PriorityQueue
 from shapely.geometry import LineString

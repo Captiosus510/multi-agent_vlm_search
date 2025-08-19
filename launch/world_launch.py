@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: world_launch.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    Launch file for intializing the world and robots to spawn with.
+    If you want more robots, you must also spawn them in with the <extern> controller and translation in the world wbt file. (look in the worlds directory)
+"""
+
 import os
 import pathlib
 import launch
@@ -11,8 +23,6 @@ from launch_ros.actions import Node
 from webots_ros2_driver.urdf_spawner import URDFSpawner, get_webots_driver_node
 from webots_ros2_driver.webots_launcher import WebotsLauncher, Ros2SupervisorLauncher
 from webots_ros2_driver.webots_controller import WebotsController
-
-
 
 def generate_launch_description():
     package_dir = get_package_share_directory('llm_search')
@@ -41,16 +51,6 @@ def generate_launch_description():
             {'robot_name': 'global_cam'},
             {'show_depth': False},  # Global camera does not have depth
             {'show_rgb': False},
-        ]
-    )
-
-    global_mapper = Node(
-        package='llm_search',
-        executable='global_map_merger',
-        output='screen',
-        parameters=[
-            {'robot_names': ['my_robot', 'other_robot']},
-            {'show_maps': True}  # Enable global map display
         ]
     )
 

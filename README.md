@@ -34,14 +34,15 @@ Then run:
 ros2 launch llm_search world_launch.py
 ```
 
-This should launch the simulator and the global camera.  
+This should launch the simulator, robots, and connect the robot driving code to each. 
 
-Open another terminal and stay in your workspace directory. Here you should run:
+Open another terminal and stay in your workspace directory. Activate your venv as well. Here you should run:
 
 ```
-# must source setup.bash every new terminal instance
+# must source setup.bash every new terminal instance and make sure venv is activated
 source install/setup.bash 
-ros2 run llm_search vlm_services
+ros2 run llm_search vlm_services --ros-args -p num_robots:=(integer of number of robots in the simulation)
 ```
 
 Now you can speak with the VLM about what you are looking for. 
+

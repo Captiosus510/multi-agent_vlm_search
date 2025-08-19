@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: yolo_wrapper.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    This module provides a wrapper around the YOLO object detection model for easier integration and usage in the detector module.
+"""
+
 import ultralytics 
 import torch
 import numpy as np

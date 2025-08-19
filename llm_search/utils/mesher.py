@@ -1,3 +1,16 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: mesher.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    This module provides utilities for mesh generation. 
+    It takes a floor mask and a depth map as input and transforms it into a 2D mesh represenation of the floor in world frame.
+    It will then inverse the mesh to project the floor mesh back in the camera's frame to feed back into GPT.
+"""
+
 import cv2
 import numpy as np
 from shapely.geometry import Polygon

@@ -1,7 +1,20 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: robot_driver.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    Launch file for initializing the robot driver. Subscribes to cmd_vel topic and publishes IMU data.
+    Publishes RPY NOT quaternions.
+    This node is able to access all the sensors and field information in the turtlebot through webots.
+    If any other sensors are added and not being published, you will have to get the device and do it yourself.
+"""
+
 import rclpy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu
-# from tf_transformations import quaternion_from_euler
 
 HALF_DISTANCE_BETWEEN_WHEELS = 0.045
 WHEEL_RADIUS = 0.025

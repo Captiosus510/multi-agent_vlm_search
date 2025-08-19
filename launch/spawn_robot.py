@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: spawn_robot.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    Launch file for spawning the robot in the simulation environment. 
+    It does a variety of tasks to setup the robot for use in other scripts:
+    - intialize robot controller with webots, publishing sensor data to ROS2 topics
+    - loads YOLO based object detector for goal detection
+    - loads camera display node for visualizing camera feed
+    - loads the navigator node for robot navigation and motion planning
+"""
+
 import os
 import launch
 from launch import LaunchDescription
@@ -33,20 +49,6 @@ def launch_setup(context, *args, **kwargs):
         ]
     )
 
-    # Add static transform publisher to connect robot to world frame
-    static_tf_publisher = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name=f'{robot_name}_static_tf',
-        arguments=[
-            '0', '0', '0',  # x, y, z
-            '0', '0', '0', '1',  # qx, qy, qz, qw (identity quaternion)
-            'map',  # parent frame
-            f'{robot_name}/base_link'  # child frame - directly to base_link
-        ],
-        output='screen'
-    )
-
     detector = Node(
         package='llm_search',
         executable='detector',
@@ -65,7 +67,8 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {'robot_name': robot_name},
             {'camera_topic': '/detector/image'},
-            {'show_depth': False}  # Assuming depth camera is available
+            {'show_depth': False},  # Assuming depth camera is available
+            {'show_rgb': False}
         ]
     )
 
@@ -84,8 +87,7 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         robot_controller,
-        static_tf_publisher,
-        # detector,
+        detector,
         camera,
         navigator,
         launch.actions.RegisterEventHandler(

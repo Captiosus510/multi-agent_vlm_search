@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: global_cams.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    Subscribes to camera feed topics of all robots. Displays the camera feeds in a grid.
+    This collects everything to visualize into a single window, making it easier to monitor all robot cameras at once.
+"""
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String

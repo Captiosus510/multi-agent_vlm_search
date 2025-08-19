@@ -1,11 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: detector.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    Launch file for initializing the object detector. Subscribes to goal topic and camera feed.
+    Makes use of YOLO to continuously check the camera feed against the goal information.
+    If a goal is detected, it will publish the detection results for final analysis by the VLM module.
+"""
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
-from llm_search.utils import YOLOWrapper
 import numpy as np
 from std_msgs.msg import String
+from llm_search.utils import YOLOWrapper
 
 class ObjectDetector(Node):
     def __init__(self):

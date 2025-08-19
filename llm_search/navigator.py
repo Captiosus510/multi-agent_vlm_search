@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: navigator.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description:
+    Robot motion controller. Subscribes to various sensor topics for navigation (GPS, IMU, Lidar).
+    Implements basic obstacle avoidance and smooth path following behaviors based on waypoints. 
+
+
+    TODO: Implement path smoothing algorithm to prevent unnecessary turning. (Ex. Funnel algorithm)
+    Note: quaternion_to_yaw is not used because the robot_driver currently publishes RPY data NOT quaternions.
+"""
+
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist

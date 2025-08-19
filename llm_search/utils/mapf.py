@@ -1,3 +1,16 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: mapf.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    This module provides utilities for multi-agent pathfinding (MAPF) in a shared environment.
+    Currently utilises a centralized conflict-based search (CBS) approach.
+    This involves a high level Constraint Tree with a low level modified A* algorithm to consider constraints.
+"""
+
 import heapq
 from dataclasses import dataclass, field
 

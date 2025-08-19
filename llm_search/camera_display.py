@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: camera_display.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+Description: 
+    Visualizes the camera and depth feed from the robot.
+"""
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -37,14 +48,7 @@ class CameraViewer(Node):
                 f'/{self.robot_name}/depth_sensor/image',
                 self.depth_callback,
                 10
-            )
-        
-            
-    def goal_callback(self, msg):
-        if self.goal is None or self.goal != msg.data:
-            self.get_logger().info(f"Received goal: {msg.data}")
-            self.goal = msg.data
-    
+            )    
 
     def image_callback(self, msg):
         try:

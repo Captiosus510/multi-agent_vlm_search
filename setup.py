@@ -61,8 +61,6 @@ setup(
             'navigator = llm_search.navigator:main',
             'camera_display = llm_search.camera_display:main',
             'vlm_services = llm_search.vlm_services:main',
-            'local_mapper = llm_search.local_mapper:main',
-            'global_map_merger = llm_search.global_mapper:main',
             'detector = llm_search.detector:main',
             'global_cams = llm_search.global_cams:main',
         ],

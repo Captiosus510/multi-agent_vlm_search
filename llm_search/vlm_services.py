@@ -1,23 +1,96 @@
-from urllib import response
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Filename: vlm_services.py
+Author: Mahd Afzal
+Date: 2025-08-19
+Version: 1.0
+
+Description: 
+    Main interface node for Vision-Language Model (VLM) services in a multi-robot system. 
+    This node provides the bridge between user natural language queries and robot actions, 
+    enabling semantic understanding of the environment, task allocation, and multi-robot coordination.  
+
+    The system leverages a VLM (via OpenAI API) for high-level reasoning and planning, 
+    while interfacing with ROS 2 topics for sensor data, robot states, and path planning.
+
+Key Features:
+    - Natural language interaction with the user through GPT-based structured responses.
+    - Centralized multi-robot scene planning (monitoring and search behaviors).
+    - Semantic prompt refinement and goal setting for robots.
+    - Integration of global RGB and depth cameras with segmentation and mesh generation.
+    - Automatic conversion of user intent into robot paths via Conflict-Based Search (CBS).
+    - Interrupt-driven reporting of search results when goal objects are detected.
+    - Real-time visualization of triangulated environment and robot positions.
+
+Core Components:
+    - **Callbacks**  
+      All incoming sensor data (images, depth, GPS, IMU) are stored within the class instance 
+      and updated via subscription callbacks. These provide the latest perception state for planning.
+
+    - **Conversation Loop**  
+      A continuous interactive loop with the VLM (GPT) that guides task execution. 
+      It ensures structured reasoning, prompt refinement, function calls (take_picture, set_goal, show_grid, direct_robot), 
+      and final task termination (`stop`).  
+      Conversation is run in a separate thread so ROS spinning remains responsive.
+
+    - **user_input_with_interrupt**  
+      Reads console input from the user while allowing asynchronous interruptions.  
+      For example, if a robot finds an object during a search, the loop is interrupted 
+      and the detection is reported immediately.
+
+    - **Image Processing**  
+      Preprocesses RGB and depth images into a triangulated mesh of the environment.  
+      Overlays a grid to allow VLM-guided semantic reasoning about search/monitor locations.  
+      Maintains adjacency graphs for path planning.
+
+    - **Path Planning**  
+      Uses a CBS (Conflict-Based Search) planner to assign robots to triangles in the mesh 
+      and generate conflict-free, synchronized paths.  
+      Paths are published as ROS `nav_msgs/Path` messages.
+
+    - **Visualization**  
+      Provides both OpenCV and Matplotlib visualizations of grid overlays, 
+      triangle IDs, robot positions, orientations, and allocated tasks.
+
+ROS Interfaces:
+    Subscribed Topics:
+        - /global_cam/rgb_camera/image_color (sensor_msgs/Image) : Global RGB image.
+        - /global_cam/depth_sensor/image (sensor_msgs/Image) : Global depth map.
+        - /<robot_name>/p3d_gps (geometry_msgs/PointStamped) : Robot GPS position.
+        - /<robot_name>/imu (sensor_msgs/Imu) : Robot orientation.
+
+    Published Topics:
+        - /robot_goal (std_msgs/String) : Parsed/refined goal prompts for robots.
+        - /robot_names (std_msgs/String) : List of active robot names in the environment.
+        - /<robot_name>/path (nav_msgs/Path) : Conflict-free path assignments for each robot.
+
+TODO:
+    - Simplify and optimize input/context prompts to improve reasoning efficiency.
+    - Add support for dynamic robot availability updates.
+    - Improve handling of quaternion orientation data (full conversion for yaw).
+    - Extend monitoring/search behaviors with richer semantic categories.
+
+Usage:
+    Run this node within a ROS 2 launch standalone.  
+    The node automatically starts a background conversation loop with the VLM and 
+    processes user queries, robot state updates, and environment observations.
+
+"""
+
+
 import rclpy
 from rclpy.node import Node
 import time
 import threading, queue, sys, select
-from openai import OpenAI
-import json, cv2
+import cv2
 from llm_search.utils.openai_interface import OpenAIInterface
 import cv2
 from cv_bridge import CvBridge
 from std_msgs.msg import String
 import tempfile
-import subprocess
 import numpy as np
-from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
-from webots_ros2_msgs.srv import SpawnNodeFromString
-import re
-import scipy
-from scipy.spatial import Delaunay
 from ultralytics import SAM
 from llm_search.utils.vector import Vector7D
 from llm_search.utils.mesher import generate_mesh, inverse_mesh
@@ -28,7 +101,6 @@ from functools import partial
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Imu
-from builtin_interfaces.msg import Time 
 import math
 from llm_search.utils.mapf import CBSPlanner
 
