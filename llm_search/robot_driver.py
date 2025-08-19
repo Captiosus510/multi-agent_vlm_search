@@ -51,16 +51,10 @@ class RobotDriver:
         imu_msg.header.frame_id = f'{self.__robot_name}/imu'
 
         rpy = self.__inertial_unit.getRollPitchYaw()
+
         imu_msg.orientation.x = rpy[0]
         imu_msg.orientation.y = rpy[1]
         imu_msg.orientation.z = rpy[2]
         imu_msg.orientation.w = 1.0  # Assuming no rotation around the w-axis
-        # # convert roll, pitch, yaw to quaternion
-        # quaternion = quaternion_from_euler(rpy[0], rpy[1], rpy[2])
-
-        # imu_msg.orientation.x = quaternion[0]
-        # imu_msg.orientation.y = quaternion[1]
-        # imu_msg.orientation.z = quaternion[2]
-        # imu_msg.orientation.w = quaternion[3]
 
         self.__imu_publisher.publish(imu_msg)

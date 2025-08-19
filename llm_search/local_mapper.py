@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from llm_search.utils.siglip import SigLipInterface
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo, Imu
 from rclpy.node import Node
@@ -21,7 +20,6 @@ class LocalMapper(Node):
         self.show_maps = self.get_parameter('show_maps').get_parameter_value().bool_value
 
         self.bridge = CvBridge()
-        self.siglip_interface = SigLipInterface()
         self.goal = None
         
         # Initialize value map with semantic values and confidence scores
@@ -259,10 +257,10 @@ class LocalMapper(Node):
         image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        semantic_score = 0.0
-        if self.goal is not None:
-            semantic_score = self.siglip_interface.compute_confidence(rgb_image, self.goal)
-            self.get_logger().info(f"Semantic score for goal: {semantic_score:.3f}")
+        # semantic_score = 0.0
+        # if self.goal is not None:
+        #     semantic_score = self.siglip_interface.compute_confidence(rgb_image, self.goal)
+        #     self.get_logger().info(f"Semantic score for goal: {semantic_score:.3f}")
 
         # Create cone-shaped mask with confidence scores
         cone_mask, confidence_mask = self.create_cone_mask(
@@ -270,8 +268,8 @@ class LocalMapper(Node):
         )
         
         # Update the value map using weighted averaging
-        self.update_value_map(semantic_score, cone_mask, confidence_mask)
-        
+        # self.update_value_map(semantic_score, cone_mask, confidence_mask)
+
         # Visualize the value map
         self.visualize_value_map()
 

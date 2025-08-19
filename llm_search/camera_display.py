@@ -5,8 +5,6 @@ from cv_bridge import CvBridge
 import cv2
 from ultralytics import YOLO
 from std_msgs.msg import String, Empty
-# from llm_search_interfaces.srv import Analysis
-from llm_search.utils import SigLipInterface
 import numpy as np
 
 class CameraViewer(Node):
@@ -65,6 +63,7 @@ class CameraViewer(Node):
         try:
             # Convert ROS Image message to OpenCV image (BGR by default)
             depth_array = self.bridge.imgmsg_to_cv2(msg, desired_encoding='32FC1')
+            # np.save('test_depth.npy', depth_array)  # Save depth array for debugging
             # self.get_logger().info(depth_array.flatten()[:100])
             depth_image = self.visualize_depth(depth_array)
             # Process the depth image if needed

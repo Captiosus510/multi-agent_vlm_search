@@ -24,8 +24,6 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/computers/protos/Keyboard.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/chairs/protos/OfficeChair.proto"
 IMPORTABLE EXTERNPROTO "../protos/Turtlebot4.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/CardboardBox.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/humans/pedestrian/protos/Pedestrian.proto"
 
 WorldInfo {
   info [
@@ -37,8 +35,8 @@ WorldInfo {
   title "Break Room"
 }
 Viewpoint {
-  orientation -0.3674756645548499 -0.31016075013536026 0.8767907076580145 4.415782798473459
-  position -1.8343659172502198 5.773586788526453 7.825057339391722
+  orientation -0.3652063386106635 -0.1462994785440291 0.9193589031582489 3.847342087662644
+  position 2.46913782934418 2.673763130695584 4.638075642108446
 }
 TexturedBackground {
   texture "entrance_hall"
@@ -59,6 +57,33 @@ Floor {
       scale 0.4 0.4
     }
   }
+}
+CeilingLight {
+  translation -4.52 2.74 2.5
+  name "ceiling light(3)"
+  bulbColor 0.913725 0.72549 0.431373
+  supportColor 0.533333 0.541176 0.521569
+  pointLightColor 0.913725 0.72549 0.431373
+  pointLightIntensity 3
+  pointLightCastShadows TRUE
+}
+CeilingLight {
+  translation -4.83 -0.65 2.5
+  name "ceiling light(2)"
+  bulbColor 0.913725 0.72549 0.431373
+  supportColor 0.533333 0.541176 0.521569
+  pointLightColor 0.913725 0.72549 0.431373
+  pointLightIntensity 3
+  pointLightCastShadows TRUE
+}
+CeilingLight {
+  translation 0.31 -0.64 2.5
+  name "ceiling light(1)"
+  bulbColor 0.913725 0.72549 0.431373
+  supportColor 0.533333 0.541176 0.521569
+  pointLightColor 0.913725 0.72549 0.431373
+  pointLightIntensity 3
+  pointLightCastShadows TRUE
 }
 CeilingSpotLight {
   translation -1.82 -2.27 2
@@ -85,15 +110,6 @@ CeilingLight {
   pointLightCastShadows TRUE
 }
 CeilingLight {
-  translation 0.31 -0.87 2.5
-  name "ceiling light(1)"
-  bulbColor 0.913725 0.72549 0.431373
-  supportColor 0.533333 0.541176 0.521569
-  pointLightColor 0.913725 0.72549 0.431373
-  pointLightIntensity 3
-  pointLightCastShadows TRUE
-}
-CeilingLight {
   translation 0.31 2.74 2.5
   name "ceiling light(4)"
   bulbColor 0.913725 0.72549 0.431373
@@ -102,27 +118,10 @@ CeilingLight {
   pointLightIntensity 3
   pointLightCastShadows TRUE
 }
-CeilingLight {
-  translation -3.52 -0.87 2.5
-  name "ceiling light(2)"
-  bulbColor 0.913725 0.72549 0.431373
-  supportColor 0.533333 0.541176 0.521569
-  pointLightColor 0.913725 0.72549 0.431373
-  pointLightIntensity 3
-  pointLightCastShadows TRUE
-}
-CeilingLight {
-  translation -3.52 2.74 2.5
-  name "ceiling light(3)"
-  bulbColor 0.913725 0.72549 0.431373
-  supportColor 0.533333 0.541176 0.521569
-  pointLightColor 0.913725 0.72549 0.431373
-  pointLightIntensity 3
-  pointLightCastShadows TRUE
-}
 Wall {
-  translation -2.65 0 0
-  size 0.05 5 0.62
+  translation 2.65 -0.77 0
+  name "wall(1)"
+  size 0.05 3.55 0.62
   appearance DEF SMALL_WALLS Roughcast {
     colorOverride 0.890196 0.803922 1
     textureTransform TextureTransform {
@@ -131,52 +130,28 @@ Wall {
   }
 }
 Wall {
-  translation 2.65 -0.77 0
-  name "wall(1)"
-  size 0.05 3.55 0.62
-  appearance USE SMALL_WALLS
-}
-Wall {
   translation 0 -2.52 0
   rotation 0 0 1 1.5708
   name "wall(2)"
   size 0.05 5.35 0.62
-  appearance USE SMALL_WALLS
-}
-Wall {
-  translation -1.65 2.524 0
-  rotation 0 0 1 1.5708
-  name "wall(3)"
-  size 0.05 2.05 0.62
-  appearance USE SMALL_WALLS
-}
-Wall {
-  translation -0.65 3.05 0
-  rotation 0 0 1 -3.14159
-  name "wall(4)"
-  size 0.05 1 0.62
-  appearance USE SMALL_WALLS
-}
-Wall {
-  translation 0.4 3.05 0
-  rotation 0 0 1 -3.14159
-  name "wall(5)"
-  size 0.05 1 0.62
-  appearance USE SMALL_WALLS
-}
-Wall {
-  translation 1.876 2.524 0
-  rotation 0 0 1 1.5708
-  name "wall(6)"
-  size 0.05 3 0.62
-  appearance USE SMALL_WALLS
+  appearance DEF SMALL_WALLS Roughcast {
+    colorOverride 0.890196 0.803922 1
+    textureTransform TextureTransform {
+      scale 1 2.4
+    }
+  }
 }
 Wall {
   translation 3.026 0.979 0
   rotation 0 0 1 1.5708
   name "wall(7)"
   size 0.05 0.7 0.62
-  appearance USE SMALL_WALLS
+  appearance DEF SMALL_WALLS Roughcast {
+    colorOverride 0.890196 0.803922 1
+    textureTransform TextureTransform {
+      scale 1 2.4
+    }
+  }
 }
 Wall {
   translation -6.17 0.92 0
@@ -322,8 +297,18 @@ Wall {
   size 0.06 6.2 2.5
 }
 Door {
-  translation 0 4.8 0
-  rotation 0 0 -1 1.5708
+  translation -6.17002 -1.97998 0
+  rotation 0 0 -1 3.67802e-06
+  size 0.06 1 2.5
+  frameSize 0.01 0.05 0.05
+  frameAppearance MattePaint {
+    baseColor 0.133333 0.0666667 0
+  }
+}
+Door {
+  translation -1.99898e-05 4.80002 0
+  rotation 0 0 1 -1.5707953071795862
+  name "door(1)"
   size 0.06 1 2.5
   frameSize 0.01 0.05 0.05
   frameAppearance MattePaint {
@@ -348,7 +333,7 @@ PottedTree {
   name "potted tree(1)"
 }
 PottedTree {
-  translation -5.78 -2.17 0
+  translation -3.09 -2.27 0
   name "potted tree(2)"
 }
 Cabinet {
@@ -438,37 +423,8 @@ Cabinet {
   }
 }
 Cabinet {
-  translation -6.14 -0.7 1.6
-  name "cabinet(3)"
-  outerThickness 0.02
-  rowsHeights [
-    0.8
-  ]
-  columnsWidths [
-    0.8, 0.8, 0.8, 0.8
-  ]
-  layout [
-    "Drawer (1, 1, 1, 1, 1.5)"
-    "Drawer (2, 1, 1, 1, 1.5)"
-    "Drawer (3, 1, 1, 1, 1.5)"
-    "Drawer (4, 1, 1, 1, 1.5)"
-    "Shelf (1, 1, 0, 1)"
-    "Shelf (2, 1, 0, 1)"
-    "Shelf (3, 1, 0, 1)"
-  ]
-  handle CabinetHandle {
-    handleColor 0.533333 0.541176 0.521569
-  }
-  primaryAppearance MattePaint {
-    baseColor 0.729412 0.741176 0.713725
-  }
-  secondaryAppearance MattePaint {
-    baseColor 0.666667 0.333333 0
-  }
-}
-Cabinet {
-  translation 1.4 2.5 0
-  rotation 0 0 1 -1.5707953071795862
+  translation -4.15835 -2.84503 0
+  rotation 0 0 1 1.57079
   name "cabinet(4)"
   outerThickness 0.02
   rowsHeights [
@@ -1001,16 +957,7 @@ Table {
   }
 }
 Table {
-  translation -3.18 -1.66 0
-  name "table(2)"
-  size 1 1.6 0.74
-  feetSize 0.05 0.05
-  legAppearance MattePaint {
-    baseColor 0.2 0.2 0.2
-  }
-}
-Table {
-  translation 3.18 0.05 0
+  translation -5.62 3.71 0
   name "table(3)"
   feetSize 0.05 0.05
   legAppearance MattePaint {
@@ -1026,7 +973,7 @@ Table {
   }
 }
 Table {
-  translation -3.18 0.05 0
+  translation -5.62 0.06 0
   name "table(5)"
   feetSize 0.05 0.05
   legAppearance MattePaint {
@@ -1034,7 +981,7 @@ Table {
   }
 }
 Table {
-  translation -3.18 1.86 0
+  translation -5.62 1.89 0
   name "table(6)"
   feetSize 0.05 0.05
   legAppearance MattePaint {
@@ -1042,7 +989,7 @@ Table {
   }
 }
 Table {
-  translation -1.77 3.27 0
+  translation -1.77 4.23 0
   rotation 0 0 1 1.5707996938995747
   name "table(7)"
   feetSize 0.05 0.05
@@ -1051,8 +998,8 @@ Table {
   }
 }
 Table {
-  translation -3.18 3.27 0
-  rotation 0 0 1 1.5707996938995747
+  translation -3.17 4.23 1.91834e-10
+  rotation 9.58976e-09 9.58979e-09 -1 -1.5707953071795862
   name "table(8)"
   size 1 1 0.74
   feetSize 0.05 0.05
@@ -1061,18 +1008,9 @@ Table {
   }
 }
 Monitor {
-  translation -2.84072 -1.79048 0.76
-  rotation 0 0 1 2.8797996938995745
-}
-Monitor {
   translation 6.47928 -1.79048 0.76
   rotation 0 0 1 -3.2724903061004254
   name "monitor(1)"
-}
-Monitor {
-  translation -2.84277 -1.29031 0.76
-  rotation 0 0 1 -2.8797996938995745
-  name "monitor(2)"
 }
 Monitor {
   translation 6.47723 -1.29031 0.76
@@ -1080,23 +1018,23 @@ Monitor {
   name "monitor(3)"
 }
 Monitor {
-  translation -2.84277 -0.32031 0.76
-  rotation 0 0 1 3.0106903061004253
+  translation -5.62151 0.431453 0.75
+  rotation 0 0 1 -0.39270530717958607
   name "monitor(4)"
 }
 Monitor {
-  translation -2.84277 0.16969 0.76
-  rotation 0 0 1 -3.0106903061004253
+  translation -5.61335 -0.0841252 0.76
+  rotation 0 0 -1 -0.13090530717958604
   name "monitor(5)"
 }
 Monitor {
-  translation -2.84277 1.65969 0.76
-  rotation 0 0 1 3.0106996938995745
+  translation -5.68049 1.65251 0.77
+  rotation 0 0 -1 -0.13090530717958604
   name "monitor(6)"
 }
 Monitor {
-  translation -2.84277 2.14969 0.76
-  rotation 0 0 1 -3.0106903061004253
+  translation -5.70296 2.25797 0.74
+  rotation 0 0 1 -0.39269530717958645
   name "monitor(7)"
 }
 Monitor {
@@ -1120,20 +1058,16 @@ Monitor {
   name "monitor(11)"
 }
 Keyboard {
-  translation -3.22303 -1.73097 0.74
-  rotation 0 0 1 3.0106996938995745
-}
-Keyboard {
   translation 6.05 -1.57 0.74
   name "keyboard(1)"
 }
 Keyboard {
-  translation -2.99655 -0.0404275 0.74
+  translation -5.37059 0.141274 0.75
   rotation 0 0 1 -3.0106993877991495
   name "keyboard(2)"
 }
 Keyboard {
-  translation -3.26 1.91 0.74
+  translation -5.44 1.91 0.74
   rotation 0 0 1 -3.141592653589793
   name "keyboard(3)"
 }
@@ -1161,26 +1095,39 @@ OfficeChair {
   name "office chair(2)"
 }
 OfficeChair {
-  translation -4.16876 -1.98104 0
-  rotation 0 0 1 0.785397
+  translation -4.75207 0.0212197 -3.7336e-08
+  rotation 2.31517e-08 -9.58972e-09 -1 0.7854
   name "office chair(3)"
 }
 OfficeChair {
-  translation -4 0.0700003 0
+  translation -4.76 1.95 0
+  rotation 0 0 1 3.14159
   name "office chair(4)"
 }
 OfficeChair {
-  translation -4.07 1.85 0
-  rotation 0 0 1 0.785397
+  translation -1.8061 3.30505 0
+  rotation 0 0 1 1.0472
   name "office chair(5)"
 }
 Robot {
-  translation 0.26062 0.96 15.4927
-  rotation 0.5773489358556708 -0.5773509358554485 -0.5773509358554485 -2.0944
+  translation 3.3786 3.29366 1.89995
+  rotation 0.13050301753046564 0.01717530230715774 -0.9912991331611769 2.88204
   children [
+    RangeFinder {
+      name "depth_sensor"
+      fieldOfView 1.5
+      width 1280
+      height 720
+      near 0.2
+      minRange 0.2
+      maxRange 10
+      noise 0.01
+      resolution 0.001
+    }
     Camera {
       name "rgb_camera"
-      width 1190
+      fieldOfView 1.5
+      width 1280
       height 720
     }
   ]
@@ -1191,15 +1138,13 @@ Robot {
     0
   ]
 }
-CardboardBox {
-  translation 0.64 2.23 0.16
-  size 0.3 0.3 0.3
+Turtlebot4 {
+  translation 0.77 3.94 0
+  name "tb1"
+  controller "<extern>"
 }
-Pedestrian {
-  translation 4.5 -0.83 1.27
-}
-Pedestrian {
-  translation -4.88 -0.83 1.37
-  rotation 0 0 1 -0.785395307179586
-  name "pedestrian(1)"
+Turtlebot4 {
+  translation 0.87 -0.02 0
+  name "tb2"
+  controller "<extern>"
 }

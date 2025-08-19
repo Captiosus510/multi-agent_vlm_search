@@ -3,7 +3,8 @@ import pathlib
 import launch
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions.path_join_substitution import PathJoinSubstitution
 from launch_ros.actions import Node
@@ -38,7 +39,8 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'robot_name': 'global_cam'},
-            {'show_depth': False}  # Global camera does not have depth
+            {'show_depth': False},  # Global camera does not have depth
+            {'show_rgb': False},
         ]
     )
 
@@ -61,13 +63,27 @@ def generate_launch_description():
         ]
     )
 
+    robot_names = ['tb1', 'tb2']
+    # include robot launch files
+    spawn_robots = [
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(os.path.join(package_dir, 'launch', 'spawn_robot.py')),
+            launch_arguments={
+                'robot_name': name,
+                'robot_speed': '0.25',
+                'robot_turn_speed': '0.5',
+                'behavior': 'monitor'
+            }.items()
+        ) for name in robot_names
+    ]
     return LaunchDescription([
         webots,
         webots._supervisor,
         global_cam,
         all_robo_cams,
-        # camera_viewer_global,
-        # global_mapper,
+        camera_viewer_global]
+        + spawn_robots
+        + [
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore
                 target_action=webots,
