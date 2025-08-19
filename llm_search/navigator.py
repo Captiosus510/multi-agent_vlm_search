@@ -3,8 +3,9 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PointStamped
-from sensor_msgs.msg import Imu
+from sensor_msgs.msg import Imu, LaserScan
 import math
+import numpy as np
 
 class Navigator(Node):
     def __init__(self):
@@ -32,6 +33,17 @@ class Navigator(Node):
         self.imu_subscription = self.create_subscription(
             Imu, f'/{self.robot_name}/imu', self.imu_callback, 10
         )
+
+        self.lidar_subscription = self.create_subscription(
+            LaserScan, f'/{self.robot_name}/rplidar', self.lidar_callback, 10
+        )
+
+        # Store obstacle info
+        self.min_obstacle_distance = float('inf')
+        self.safe_distance = 0.5  # meters
+        self.lidar_ranges = None
+        self.lidar_angle_increment = None
+        self.lidar_angle_min = None
 
         # Path following state
         self.path = []
@@ -70,6 +82,30 @@ class Navigator(Node):
     def imu_callback(self, msg):
         """Update robot's current orientation from IMU"""
         self.current_yaw = msg.orientation.z  # Assuming z is the yaw angle in radians
+
+    def lidar_callback(self, msg: LaserScan):
+        # Convert LaserScan ranges into numpy array for easier processing
+        ranges = np.array(msg.ranges)
+
+        # Filter invalid values (inf, NaN)
+        self.lidar_ranges = ranges[np.isfinite(ranges)]
+        self.lidar_angle_increment = msg.angle_increment
+        self.lidar_angle_min = msg.angle_min
+
+        if len(self.lidar_ranges) > 0:
+            # Focus on forward-facing 60° sector
+            angle_range = 30  # degrees
+            center_index = len(ranges) // 2
+            window = int(angle_range / (180 / len(ranges)))  # convert to indices
+            front_ranges = ranges[center_index - window : center_index + window]
+
+            front_valid = front_ranges[np.isfinite(front_ranges)]
+            if len(front_valid) > 0:
+                self.min_obstacle_distance = np.min(front_valid)
+            else:
+                self.min_obstacle_distance = float('inf')
+        else:
+            self.min_obstacle_distance = float('inf')
 
     def quaternion_to_yaw(self, q):
         """Convert quaternion to yaw angle in radians"""
@@ -146,11 +182,22 @@ class Navigator(Node):
             dy = target_y - self.current_position['y']
             distance_to_target = math.sqrt(dx*dx + dy*dy)
             
-            # Calculate desired heading to target
+            # Desired heading from path
             desired_yaw = math.atan2(dy, dx)
-            
-            # Calculate angle error (shortest path)
-            angle_error = self.normalize_angle(desired_yaw - self.current_yaw)
+
+            # Avoidance heading
+            avoid_heading = self.compute_avoidance_heading(
+                self.lidar_ranges, self.lidar_angle_increment, self.lidar_angle_min
+            )
+
+            if avoid_heading is not None:
+                # Blend: weighted sum of desired path and obstacle-free direction
+                alpha = 0.7  # favor path, 0.3 favor obstacle avoidance
+                blended_heading = alpha * desired_yaw + (1 - alpha) * avoid_heading
+                angle_error = self.normalize_angle(blended_heading - self.current_yaw)
+            else:
+                # If blocked completely, stop/turn
+                angle_error = self.normalize_angle(desired_yaw - self.current_yaw)
             
             self.get_logger().info(f"Waypoint {self.current_waypoint_index}: "
                                   f"distance={distance_to_target:.3f}m, "
@@ -260,6 +307,23 @@ class Navigator(Node):
         msg.angular.z = smooth_angular
         
         return msg
+
+
+    def compute_avoidance_heading(self, ranges, angle_increment, angle_min):
+        """Find avoidance direction based on free space"""
+        # Convert LIDAR to polar sectors
+        free_angles = []
+        for i, r in enumerate(ranges):
+            if np.isfinite(r) and r > self.safe_distance:
+                angle = angle_min + i * angle_increment
+                free_angles.append(angle)
+
+        if not free_angles:
+            return None  # blocked everywhere
+        
+        # Pick the free angle closest to forward
+        return min(free_angles, key=lambda a: abs(a))
+    
 
 def main(args=None):
     rclpy.init(args=args)

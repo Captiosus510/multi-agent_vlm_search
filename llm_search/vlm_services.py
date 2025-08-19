@@ -56,7 +56,7 @@ Try to semantically analyze the scene and identify points of interest where turt
 ALLOCATION: only propose the minimum number of robots needed to achieve the task and the minimum number of grid cells. If you have multiple robots
 spread them out meaningfully.
 
-4. Confirm with the user about the grid cells you want to direct robots to. Use show_grid to show the grid image. DO NOT SHOW THE GRID CELL NUMBERS, JUST THE IMAGE. \
+4. Confirm with the user about the grid cells you want to direct robots to. Use show_grid to show the grid image. DO NOT SHOW THE GRID CELL NUMBERS, JUST THE IMAGE.
 
 For monitoring:
 
@@ -190,13 +190,16 @@ Always provide both text responses for conversation and appropriate function cal
                 continue
             if response and hasattr(response, 'set_goal') and response.set_goal:
                 self.parse_prompt(response.set_goal.prompts)
+                self.interface.add_message("system", f"Goal set successfully: {self.parsed_prompt}")
                 continue
             if response and hasattr(response, 'show_grid') and response.show_grid:
                 self.get_logger().info("Showing grid image to the user.")
                 self.show_grid_image(response.show_grid.triangle_ids)
+                self.interface.add_message("system", "Grid image displayed successfully.")
             if response and hasattr(response, 'direct_robot') and response.direct_robot:
                 goal_assignments = {assignment.robot_name: assignment.triangle_id for assignment in response.direct_robot.assignments}
                 self.plan_multi_agent(goal_assignments, weight=1.0, goal_wait=0, max_time=300)
+                self.interface.add_message("system", "Directed robots to the specified triangles successfully.")
                 continue
             if response and hasattr(response, 'stop') and response.stop:
                 self.get_logger().info("Conversation ended by GPT.")
@@ -459,44 +462,6 @@ Always provide both text responses for conversation and appropriate function cal
 
         return tri_id
     
-    # def direct_robot(self, triangle_id: int, robot_name: str, behavior: str):
-    #     """
-    #     Direct a robot to a specific triangle with the given behavior.
-    #     """
-    #     if robot_name not in self.robot_names:
-    #         self.get_logger().error(f"Robot {robot_name} is not available.")
-    #         return
-
-    #     if behavior not in ["monitor", "search"]:
-    #         self.get_logger().error(f"Invalid behavior: {behavior}. Must be 'monitor' or 'search'.")
-    #         return
-        
-    #     # Find the nearest triangle to the robot's current position
-    #     tri_id = self.find_nearest_triangle(robot_name)
-    #     if tri_id is None:
-    #         self.get_logger().error(f"Could not find nearest triangle for robot {robot_name}.")
-    #         return
-        
-    #     # Perform A*
-    #     path = a_star_planner(tri_id, triangle_id, self.adjacency_list)
-        
-    #     # Log the action
-    #     self.get_logger().info(f"Directing {robot_name} to triangle {triangle_id} with behavior {behavior}.")
-
-    #     # print the path for debugging
-    #     if path is not None:
-    #         self.get_logger().info(f"Path found for {robot_name} to triangle {triangle_id}: {path}")
-
-    #         # Convert to ROS Path message
-    #         path_msg = self.create_path_message(path, robot_name, behavior)
-    #         self.robot_path_publishers[robot_name].publish(path_msg)
-
-    #         self.interface.add_message("system", f"SUCCESS! Directing {robot_name} to triangle {triangle_id} with behavior {behavior}.")
-    #     else:
-    #         self.get_logger().info(f"No path found for {robot_name} to triangle {triangle_id}.")
-    #         self.interface.add_message("system", f"ERROR: No path found for {robot_name} to triangle {triangle_id}.")
-    #         return
-        
     def plan_multi_agent(self, goal_assignments: dict, weight: float = 1.0, goal_wait: int = 0, max_time: int = 300):
         """
         goal_assignments: {robot_name: goal_triangle_id}
