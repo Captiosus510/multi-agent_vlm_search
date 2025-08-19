@@ -373,7 +373,7 @@ Always provide both text responses for conversation and appropriate function cal
         """
         if hasattr(self, 'adjacency_list'):
             return
-        mask = np.load('src/llm_search/llm_search/best_mask.npy')
+        mask = np.load('src/llm_search/llm_search/temp/best_mask.npy')
         if (self.latest_image is not None and 
             mask is not None and 
             not self.is_image_processed and
