@@ -70,6 +70,7 @@ TODO:
     - Add support for dynamic robot availability updates.
     - Improve handling of quaternion orientation data (full conversion for yaw).
     - Extend monitoring/search behaviors with richer semantic categories.
+    - Implement proper search behavior.
 
 Usage:
     Run this node within a ROS 2 launch standalone.  
@@ -626,7 +627,7 @@ Always provide both text responses for conversation and appropriate function cal
             hasattr(self, 'ids_proj')):
             
             # Create a clean resized image to draw highlights on
-            mask = np.load('src/llm_search/llm_search/best_mask.npy')
+            mask = np.load('src/llm_search/llm_search/temp/best_mask.npy')
             highlight_img = cv2.resize(self.latest_image, (mask.shape[1], mask.shape[0]))
             overlay = highlight_img.copy()
 
