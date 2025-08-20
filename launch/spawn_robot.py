@@ -27,7 +27,7 @@ from webots_ros2_driver.webots_controller import WebotsController
 from launch.actions import OpaqueFunction
 
 def launch_setup(context, *args, **kwargs):
-    package_dir = get_package_share_directory('llm_search')
+    package_dir = get_package_share_directory('multi_robot_allocation')
     robot_description_path = os.path.join(package_dir, 'resource', 'tb4.urdf')
     robot_name = LaunchConfiguration('robot_name').perform(context)
     robot_speed = LaunchConfiguration('robot_speed').perform(context)
@@ -50,7 +50,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     detector = Node(
-        package='llm_search',
+        package='multi_robot_allocation',
         executable='detector',
         name='object_detector',
         output='screen',
@@ -59,21 +59,26 @@ def launch_setup(context, *args, **kwargs):
         ]
     )
 
-    camera = Node(
-        package='llm_search',
+    supervisor = Node(
+        package='multi_robot_allocation',
+        executable='robot_driver',
+        name='robot_driver_0'
+    )
+
+    camera_display = Node(
+        package='multi_robot_allocation',
         executable='camera_display',
-        name='camera_viewer',
-        output='screen',
-        parameters=[
-            {'robot_name': robot_name},
-            {'camera_topic': '/detector/image'},
-            {'show_depth': False},  # Assuming depth camera is available
-            {'show_rgb': False}
-        ]
+        name='camera_display_0'
+    )
+
+    global_cams = Node(
+        package='multi_robot_allocation',
+        executable='global_cams',
+        name='global_cams'
     )
 
     navigator = Node(
-        package='llm_search',
+        package='multi_robot_allocation',
         executable='navigator',
         name='navigator',
         output='screen',
@@ -88,7 +93,7 @@ def launch_setup(context, *args, **kwargs):
     return [
         robot_controller,
         detector,
-        camera,
+        camera_display,
         navigator,
         launch.actions.RegisterEventHandler(
             event_handler=launch.event_handlers.OnProcessExit( # type: ignore

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>llm_search</name>
+  <name>multi_robot_allocation</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="afzalmahd@gmail.com">mahdlinux</maintainer>
@@ -11,7 +11,7 @@
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
   <depend>webots_ros2_driver</depend>
-  <depend>llm_search_interfaces</depend>
+  <depend>multi_robot_allocation_interfaces</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

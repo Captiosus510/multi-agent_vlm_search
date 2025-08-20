@@ -25,7 +25,7 @@ from webots_ros2_driver.webots_launcher import WebotsLauncher, Ros2SupervisorLau
 from webots_ros2_driver.webots_controller import WebotsController
 
 def generate_launch_description():
-    package_dir = get_package_share_directory('llm_search')
+    package_dir = get_package_share_directory('multi_robot_allocation')
     robot_description_path = os.path.join(package_dir, 'resource', 'my_robot.urdf')
     # other_robot_description_path = os.path.join(package_dir, 'resource', 'other_robot.urdf')
 
@@ -44,7 +44,7 @@ def generate_launch_description():
     )
 
     camera_viewer_global = Node(
-        package='llm_search',
+        package='multi_robot_allocation',
         executable='camera_display',
         output='screen',
         parameters=[
@@ -55,7 +55,7 @@ def generate_launch_description():
     )
 
     all_robo_cams = Node(
-        package='llm_search',
+        package='multi_robot_allocation',
         executable='global_cams',
         output='screen',
         parameters=[

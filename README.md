@@ -20,7 +20,7 @@ Then clone the repository. After cloning the repository:
 cd ~/your_workspace
 python -m venv venv_name
 source venv/bin/activate
-pip install -r src/llm_search/requirements.txt
+pip install -r src/multi_robot_allocation/requirements.txt
 ```
 
 ## Running the code
@@ -33,7 +33,7 @@ source install/setup.bash
 
 Then run:
 ```
-ros2 launch llm_search world_launch.py
+ros2 launch multi_robot_allocation world_launch.py
 ```
 
 This should launch the simulator, robots, and connect the robot driving code to each. 
@@ -43,7 +43,7 @@ Open another terminal and stay in your workspace directory. Activate your venv a
 ```
 # must source setup.bash every new terminal instance and make sure venv is activated
 source install/setup.bash 
-ros2 run llm_search vlm_services --ros-args -p num_robots:=(integer of number of robots in the simulation)
+ros2 run multi_robot_allocation vlm_services --ros-args -p num_robots:=(integer of number of robots in the simulation)
 ```
 
 Now you can speak with the VLM about what you are looking for. 

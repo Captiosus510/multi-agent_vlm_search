@@ -1,6 +1,6 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
-package_name = 'llm_search'
+package_name = 'multi_robot_allocation'
 data_files = []
 data_files.append(('share/ament_index/resource_index/packages', ['resource/' + package_name]))
 data_files.append(('share/' + package_name + '/launch', ['launch/world_launch.py']))
@@ -41,28 +41,26 @@ data_files.append(('share/' + package_name + '/protos/pib_meshes', [
 ]))
 
 data_files.append(('share/' + package_name, ['package.xml']))
-data_files.append(('share/' + package_name, ['slam_params.yaml']))
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='1.0.0',
     packages=find_packages(),
     data_files=data_files,
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Mahd Afzal',
     maintainer_email='afzalmahd@gmail.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
-    tests_require=['pytest'],
+    description='Multi-robot allocation package for ROS2',
+    license='Apache License 2.0',
     entry_points={
         'console_scripts': [
-            'robot_driver = llm_search.robot_driver:main',
-            'navigator = llm_search.navigator:main',
-            'camera_display = llm_search.camera_display:main',
-            'vlm_services = llm_search.vlm_services:main',
-            'detector = llm_search.detector:main',
-            'global_cams = llm_search.global_cams:main',
+            'robot_driver = multi_robot_allocation.robot_driver:main',
+            'navigator = multi_robot_allocation.navigator:main',
+            'camera_display = multi_robot_allocation.camera_display:main',
+            'vlm_services = multi_robot_allocation.vlm_services:main',
+            'detector = multi_robot_allocation.detector:main',
+            'global_cams = multi_robot_allocation.global_cams:main',
         ],
     },
 )

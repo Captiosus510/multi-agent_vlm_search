@@ -18,7 +18,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from std_msgs.msg import String
-from llm_search.utils import YOLOWrapper
+from multi_robot_allocation.utils import YOLOWrapper
 
 class ObjectDetector(Node):
     def __init__(self):

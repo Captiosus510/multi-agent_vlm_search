@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <robot name="My robot">
     <webots>
-        <plugin type="llm_search.robot_driver.RobotDriver" />
+        <plugin type="multi_robot_allocation.robot_driver.RobotDriver" />
         <device>
             <name>imu</name>
             <plugin>webots_ros2_driver/Imu</plugin>

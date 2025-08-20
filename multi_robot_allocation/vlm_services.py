@@ -85,7 +85,7 @@ from rclpy.node import Node
 import time
 import threading, queue, sys, select
 import cv2
-from llm_search.utils.openai_interface import OpenAIInterface
+from multi_robot_allocation.utils.openai_interface import OpenAIInterface
 import cv2
 from cv_bridge import CvBridge
 from std_msgs.msg import String
@@ -93,9 +93,9 @@ import tempfile
 import numpy as np
 from sensor_msgs.msg import Image
 from ultralytics import SAM
-from llm_search.utils.vector import Vector7D
-from llm_search.utils.mesher import generate_mesh, inverse_mesh
-from llm_search.utils.graphing import *
+from multi_robot_allocation.utils.vector import Vector7D
+from multi_robot_allocation.utils.mesher import generate_mesh, inverse_mesh
+from multi_robot_allocation.utils.graphing import *
 import matplotlib.pyplot as plt
 from geometry_msgs.msg import PointStamped
 from functools import partial
@@ -103,7 +103,7 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Imu
 import math
-from llm_search.utils.mapf import CBSPlanner
+from multi_robot_allocation.utils.mapf import CBSPlanner
 
 class VLMServices(Node):
     
@@ -446,7 +446,7 @@ Always provide both text responses for conversation and appropriate function cal
         """
         if hasattr(self, 'adjacency_list'):
             return
-        mask = np.load('src/llm_search/llm_search/temp/best_mask.npy')
+        mask = np.load('src/multi_robot_allocation/multi_robot_allocation/temp/best_mask.npy')
         if (self.latest_image is not None and 
             mask is not None and 
             not self.is_image_processed and
@@ -627,7 +627,7 @@ Always provide both text responses for conversation and appropriate function cal
             hasattr(self, 'ids_proj')):
             
             # Create a clean resized image to draw highlights on
-            mask = np.load('src/llm_search/llm_search/temp/best_mask.npy')
+            mask = np.load('src/multi_robot_allocation/multi_robot_allocation/temp/best_mask.npy')
             highlight_img = cv2.resize(self.latest_image, (mask.shape[1], mask.shape[0]))
             overlay = highlight_img.copy()
 
