@@ -1,4 +1,0 @@
-slam_toolbox:
-  ros__parameters:
-    scan_topic: my_robot/rplidar
-    use_sim_time: false
