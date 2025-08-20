@@ -215,10 +215,10 @@ class Navigator(Node):
                 # If blocked completely, stop/turn
                 angle_error = self.normalize_angle(desired_yaw - self.current_yaw)
             
-            self.get_logger().info(f"Waypoint {self.current_waypoint_index}: "
-                                  f"distance={distance_to_target:.3f}m, "
-                                  f"angle_error={math.degrees(angle_error):.1f}°, "
-                                  f"pos=({self.current_position['x']:.2f}, {self.current_position['y']:.2f})")
+            # self.get_logger().info(f"Waypoint {self.current_waypoint_index}: "
+            #                       f"distance={distance_to_target:.3f}m, "
+            #                       f"angle_error={math.degrees(angle_error):.1f}°, "
+            #                       f"pos=({self.current_position['x']:.2f}, {self.current_position['y']:.2f})")
             
             # PREDICTIVE WAYPOINT DETECTION - Check if we'll overshoot
             # Calculate where robot will be in next time step

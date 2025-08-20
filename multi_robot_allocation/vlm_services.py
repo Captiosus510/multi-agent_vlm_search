@@ -207,6 +207,7 @@ Always provide both text responses for conversation and appropriate function cal
         self.robot_orientation_subs = {name: self.create_subscription(Imu, f'/{name}/imu', partial(self.orientation_callback, name), 10) for name in self.robot_names}
         self.robot_positions = {name: {'x': 0.0, 'y': 0.0, 'z': 0.0, 'heading': 0.0} for name in self.robot_names}
         self.robot_path_publishers = {name: self.create_publisher(Path, f'/{name}/path', 10) for name in self.robot_names}
+        self.robot_detection_subs = {name: self.create_subscription(Image, f'/{name}/detector/found', self.found_objects_callback, 10) for name in self.robot_names}
 
         # Start conversation in a separate thread so ROS can keep spinning
         self._conversation_thread = threading.Thread(target=self.conversation, daemon=True)

@@ -73,7 +73,13 @@ class ObjectDetector(Node):
             boxes, scores, class_ids, masks = self.yolo_model.detect(cv_image)
 
             # create a flag if any of the confidences are above threshold
-            found_objects = any(score > 0.5 for score in scores)
+            found_objects = any(score > 0.1 for score in scores)
+
+            if found_objects:
+                # If any objects are found, process the image
+                self.get_logger().info("Found objects in image.")
+            else:
+                self.get_logger().info("No objects found.")
 
             # create a copy for mask overlay
             overlay = cv_image.copy()
