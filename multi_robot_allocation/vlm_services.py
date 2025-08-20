@@ -66,11 +66,13 @@ ROS Interfaces:
         - /<robot_name>/path (nav_msgs/Path) : Conflict-free path assignments for each robot.
 
 TODO:
+    - label the turtlebots so the VLM can identify which one is which
+    - Implement a mechanism for the VLM to request specific robot IDs when issuing commands.
     - Simplify and optimize input/context prompts to improve reasoning efficiency.
     - Add support for dynamic robot availability updates.
     - Improve handling of quaternion orientation data (full conversion for yaw).
-    - Extend monitoring/search behaviors with richer semantic categories.
-    - Implement proper search behavior.
+    - Have more categories for object recognition (improve semantic understanding)
+    - visualize the planned paths better
 
 Usage:
     Run this node within a ROS 2 launch standalone.  
