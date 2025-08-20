@@ -1,6 +1,8 @@
 # Multi-Robot Allocation with VLM
 
-This repo is contiains code for a system that interfaces with the user through natural language to carry out search and monitoring tasks with a multi-robot system. It uses GPT 4.1 to analyze the scene and extract semantic information. Then, using some image segmentation and mesh building, it makes use of the resulting grid to direct robots to grid cells. In the future, I hope to expand this work to fully carry out a search pipeline. For now, it simply directs robots to relevant locations based on the query and posts them as sentries to monitor for objects. The goal is to simplify the world's representation to leverage the VLM's strength in image analysis and semantics while keeping it from relying too much on spatial awareness.
+This repo is contiains code for a system that interfaces with the user through natural language to carry out monitoring tasks with a multi-robot system. It uses GPT 4.1 to analyze and understand the scene. Then, using some image segmentation and mesh building, it makes use of the resulting grid to direct robots to grid cells. In the future, I hope to expand this work to fully carry out a search pipeline. For now, it simply directs robots to relevant locations based on the query and posts them as sentries to monitor for objects. The goal is to simplify the world's representation to leverage the VLM's strength in image analysis and semantics while keeping it from relying too much on spatial awareness.
+
+This project will be used for later downstream tasks that involve directing multiple robots (manipulation, search, etc.)
 
 Here is a flowchart for the initalization and the world building of the system:
 
