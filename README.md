@@ -52,3 +52,47 @@ ros2 run multi_robot_allocation vlm_services --ros-args -p num_robots:=(integer 
 
 Now you can speak with the VLM about what you are looking for. 
 
+## Results
+
+![alt text](https://github.com/Captiosus510/multi-agent_vlm_search/blob/main/res/find_package_prompt.png?raw=true)
+
+Prompt: I am waiting for a package. Could you monitor the entrances for me?
+
+![alt text](https://github.com/Captiosus510/multi-agent_vlm_search/blob/main/res/cat_hiding_prompt.png?raw=true)
+
+Prompt: My cat likes hiding behind plants. Can you monitor for him. 
+
+## Acknowledgments
+
+This project leverages several state-of-the-art technologies and open-source libraries that made this multi-robot allocation system possible:
+
+### AI and Machine Learning
+- **OpenAI GPT-4** - For natural language processing, semantic scene understanding, and intelligent task planning in our Vision-Language Model (VLM) services
+- **Segment Anything Model (SAM)** by Meta AI - For advanced image segmentation and object detection capabilities
+- **Ultralytics YOLO** - For real-time object detection and computer vision processing
+
+### Computer Vision and Image Processing
+- **OpenCV** - For comprehensive computer vision operations, image preprocessing, and visualization
+- **cv_bridge** - For seamless conversion between ROS 2 image messages and OpenCV formats
+- **NumPy** - For efficient numerical computations and array operations in image processing pipelines
+
+### Robotics and Path Planning
+- **ROS 2 (Robot Operating System)** - For the core robotics middleware, communication, and system architecture
+- **Conflict-Based Search (CBS) Algorithm** - For multi-agent path finding and collision-free trajectory planning
+- **TurtleBot4 Platform** - For the robotic hardware platform and simulation environment
+
+### 3D Processing and Visualization
+- **Matplotlib** - For data visualization, grid overlays, and real-time plotting of robot states
+- **Trimesh** - For 3D mesh generation and geometric processing of the environment
+- **Scipy** - For scientific computing and spatial data structures used in mesh triangulation
+
+### Development and Utilities
+- **Python 3** - The primary programming language for this project
+- **Threading and Queue Libraries** - For concurrent processing and interrupt-driven task handling
+- **Base64 Encoding** - For efficient image transmission to cloud-based AI services
+
+### Special Thanks
+We acknowledge the broader robotics and AI research community for advancing the fields of:
+- Multi-agent systems and coordination
+- Vision-language models for robotics
+
