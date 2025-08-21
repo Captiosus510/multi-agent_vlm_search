@@ -103,4 +103,6 @@ As stated previously, this project will be used for various downstream tasks. On
 Yokoyama, Naoki, et al. “VLFM: Vision-Language Frontier Maps for Zero-Shot Semantic Navigation.” *arXiv preprint* arXiv:2312.03275, 6 Dec. 2023. 
 [paper link](https://arxiv.org/pdf/2312.03275)
 
-In the mapper branch, there is some code contained within local mapper that makes use of 
+In the mapper branch, there is some code contained within local mapper that makes use of SigLip to generate a semantic map of the area around the robot. The idea is that the robot will go in the direction with the best confidence score in a search task. There is also framework in the global mapper file for collecting all the local maps from multiple robots into one global semantic map. 
+
+Most of the initial part and direction of search is already set up. What needs to be implemented is the decentralized search phase that would come after the initial direction from the VLM.
