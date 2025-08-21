@@ -96,3 +96,11 @@ We acknowledge the broader robotics and AI research community for advancing the 
 - Multi-agent systems and coordination
 - Vision-language models for robotics
 
+## Future Work
+
+As stated previously, this project will be used for various downstream tasks. One such task is search, which has been partly implemented based on an idea presented in this paper:
+
+Yokoyama, Naoki, et al. “VLFM: Vision-Language Frontier Maps for Zero-Shot Semantic Navigation.” *arXiv preprint* arXiv:2312.03275, 6 Dec. 2023. 
+[paper link](https://arxiv.org/pdf/2312.03275)
+
+In the mapper branch, there is some code contained within local mapper that makes use of 
